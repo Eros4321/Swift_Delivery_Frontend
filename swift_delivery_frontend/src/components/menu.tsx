@@ -83,14 +83,19 @@ const Menu: React.FC = () => {
   }, [cart]);
 
   useEffect(() => {
-    const getMenuItems = async () => {
-      try {
-        const data = await fetchMenuItems(cafeteriaId);
-        setMenuItems(data);
-      } catch (error) {
-        console.error('Error fetching menu items:', error);
+  const getMenuItems = async () => {
+    if (cafeteriaId !== undefined) {
+      const numericCafeteriaId = Number(cafeteriaId);
+      if (!isNaN(numericCafeteriaId)) {
+        try {
+          const data = await fetchMenuItems(numericCafeteriaId);
+          setMenuItems(data);
+        } catch (error) {
+          console.error('Error fetching menu items:', error);
+        }
       }
-    };
+    }
+  };
 
     getMenuItems();
 
