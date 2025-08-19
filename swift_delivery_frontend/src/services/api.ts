@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://swift-delivery.onrender.com/', 
+  baseURL: 'https://swift-delivery.onrender.com/api', 
 });
 
 // Fetch orders from the API
