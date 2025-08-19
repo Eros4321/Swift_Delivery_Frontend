@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://swift-delivery.onrender.com/api', 
+  baseURL: 'https://swift-delivery.onrender.com/', 
 });
 
 // Fetch orders from the API
@@ -16,7 +16,7 @@ export const createOrder = async (orderData: any) => {
   return response.data;
 };
 
-export const fetchMenuItems = async (cafeteriaId: string) => {
+export const fetchMenuItems = async (cafeteriaId: any) => {
   const response = await api.get(`api/cafeterias/${cafeteriaId}/`);  // Assuming your menu items endpoint is "/menu-items/"
   return response.data.menu_items;
 };
