@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/checkout.scss';
+import { createOrder, getApiErrorMessage } from '../services/api.ts';
 
 interface CartItem {
   id: number;
@@ -13,6 +14,7 @@ const Checkout: React.FC = () => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
@@ -26,10 +28,15 @@ const Checkout: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (cart.length === 0) {
+      alert('Your cart is empty. Add items before placing an order.');
+      return;
+    }
+
     const orderData = {
-      customer_name: name,
-      phone_number: phone,
-      delivery_address: address,
+      customer_name: name.trim(),
+      phone_number: phone.trim(),
+      delivery_address: address.trim(),
       order_items: cart.map(item => ({
         menu_item: item.id, 
         quantity: item.quantity
@@ -37,17 +44,8 @@ const Checkout: React.FC = () => {
   };
 
   try {
-    const response = await fetch("http://127.0.0.1:8000/api/orders/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(orderData),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to place order");
-    }
+    setIsSubmitting(true);
+    await createOrder(orderData);
 
     alert("Order placed successfully!");
     localStorage.removeItem("cart"); // Clear cart after successful order
@@ -55,9 +53,11 @@ const Checkout: React.FC = () => {
     setName("");
     setPhone("");
     setAddress("");
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error placing order:", error);
-    alert("Something went wrong. Please try again.");
+    alert(getApiErrorMessage(error));
+  } finally {
+    setIsSubmitting(false);
   }
   };
 
@@ -68,7 +68,9 @@ const Checkout: React.FC = () => {
         <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} required />
         <input type="tel" placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} required />
         <textarea placeholder="Delivery Address" value={address} onChange={(e) => setAddress(e.target.value)} required />
-        <button type="submit" className="place-order-btn">Place Order</button>
+        <button type="submit" className="place-order-btn" disabled={isSubmitting || cart.length === 0}>
+          {isSubmitting ? 'Placing Order...' : 'Place Order'}
+        </button>
       </form>
 
       {cart.length > 0 && (
