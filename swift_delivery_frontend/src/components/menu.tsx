@@ -1,25 +1,41 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { fetchMenuItems } from '../services/api.ts';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { fetchCafeteriaDetails } from '../services/api.ts';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../styles/menu.scss';
 import Header from './Header';
-import Footer from './Footer';
+import SearchField from './SearchField';
+import clockOutlineIcon from '../assets/ClockOutline2.svg';
+import favoriteIcon from '../assets/heart2.svg';
+import starIcon from '../assets/Star.svg';
+import arrowForwardIcon from '../assets/arrow_forward_ios.svg';
 
 interface MenuItem {
   id: number;
   name: string;
-  price: number;
+  price: number | string;
   available: boolean;
   category_name?: string;
   image?: string | null;
 }
 
+interface CartItem extends MenuItem {
+  quantity: number;
+}
+
+interface CafeteriaDetails {
+  id: number;
+  name: string;
+  image: string | null;
+  menu_items: MenuItem[];
+}
+
 interface QuantitySelectorProps {
-  initialQuantity?: number; 
-  min?: number; 
-  max?: number; 
-  onQuantityChange?: (quantity: number) => void; 
+  quantity: number;
+  onChange: (newQuantity: number) => void;
+  min?: number;
+  max?: number;
 }
 
 interface QuantityMap {
@@ -27,181 +43,401 @@ interface QuantityMap {
 }
 
 const QuantitySelector: React.FC<QuantitySelectorProps> = ({
-  initialQuantity = 0,
-  min = 0,
-  max = 100,
-  onQuantityChange,
+  quantity,
+  onChange,
+  min = 1,
+  max = 10,
 }) => {
-  const [quantity, setQuantity] = useState(initialQuantity);
-
-  useEffect(() => {
-    setQuantity(initialQuantity); // Sync with parent state
-  }, [initialQuantity]);
-
   const handleIncrease = () => {
     if (quantity < max) {
-      const newQuantity = quantity + 1;
-      setQuantity(newQuantity);
-      onQuantityChange && onQuantityChange(newQuantity);
+      onChange(quantity + 1);
     }
   };
 
   const handleDecrease = () => {
     if (quantity > min) {
-      const newQuantity = quantity - 1;
-      setQuantity(newQuantity);
-      onQuantityChange && onQuantityChange(newQuantity);
+      onChange(quantity - 1);
     }
   };
 
   return (
-    <div className="quantity-selector">
-      <button className="minus" onClick={handleDecrease}>
+    <div className="menu-quantity-selector">
+      <button type="button" onClick={handleDecrease} aria-label="Reduce quantity">
         -
       </button>
-      <span className="quantity">{quantity}</span>
-      <button className="plus" onClick={handleIncrease}>
+      <span>{quantity}</span>
+      <button type="button" onClick={handleIncrease} aria-label="Increase quantity">
         +
       </button>
     </div>
   );
 };
 
+const readCartFromStorage = () => {
+  const savedCart = localStorage.getItem('cart');
+
+  if (!savedCart) {
+    return [];
+  }
+
+  try {
+    const parsedCart = JSON.parse(savedCart);
+    return Array.isArray(parsedCart) ? (parsedCart as CartItem[]) : [];
+  } catch (error) {
+    console.error('Error parsing saved cart:', error);
+    return [];
+  }
+};
+
+const formatPrice = (price: number | string) => `₦${Number(price).toLocaleString()}`;
+
 const Menu: React.FC = () => {
   const { cafeteriaId } = useParams<{ cafeteriaId: string }>();
+  const [cafeteria, setCafeteria] = useState<CafeteriaDetails | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [quantities, setQuantities] = useState<QuantityMap>({});
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [cart, setCart] = useState<MenuItem[]>(() => {
-    const savedCart = localStorage.getItem('cart');
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
-  const [alertMessage, setAlertMessage] = useState<string | null>(null); 
-  
-  useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('');
+  const [cart, setCart] = useState<CartItem[]>(() => readCartFromStorage());
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const categorySectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   useEffect(() => {
-  const getMenuItems = async () => {
-    if (cafeteriaId !== undefined) {
-      const numericCafeteriaId = Number(cafeteriaId);
-      if (!isNaN(numericCafeteriaId)) {
-        try {
-          const data = await fetchMenuItems(numericCafeteriaId);
-          setMenuItems(data);
-        } catch (error) {
-          console.error('Error fetching menu items:', error);
-        }
+    const getCafeteriaData = async () => {
+      if (cafeteriaId === undefined) {
+        return;
       }
-    }
-  };
 
-    getMenuItems();
+      const numericCafeteriaId = Number(cafeteriaId);
+
+      if (Number.isNaN(numericCafeteriaId)) {
+        return;
+      }
+
+      try {
+        const data = await fetchCafeteriaDetails(numericCafeteriaId);
+        setCafeteria(data);
+        setMenuItems(data.menu_items ?? []);
+      } catch (error) {
+        console.error('Error fetching cafeteria details:', error);
+      }
+    };
+
+    getCafeteriaData();
 
     const savedQuantities = localStorage.getItem('quantities');
     if (savedQuantities) {
-      setQuantities(JSON.parse(savedQuantities));
+      try {
+        setQuantities(JSON.parse(savedQuantities));
+      } catch (error) {
+        console.error('Error parsing saved quantities:', error);
+      }
+    }
+  }, [cafeteriaId]);
+
+  useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify(cart));
+    window.dispatchEvent(new Event('cart-updated'));
+  }, [cart]);
+
+  useEffect(() => {
+    const syncCart = () => {
+      setCart(readCartFromStorage());
+    };
+
+    window.addEventListener('storage', syncCart);
+    window.addEventListener('focus', syncCart);
+
+    return () => {
+      window.removeEventListener('storage', syncCart);
+      window.removeEventListener('focus', syncCart);
+    };
+  }, []);
+
+  const categories = Array.from(
+    new Set(menuItems.map((item) => item.category_name || 'Uncategorized'))
+  );
+
+  const visibleSections = categories
+    .map((category) => ({
+      category,
+      items: menuItems.filter((item) => {
+        const categoryName = item.category_name || 'Uncategorized';
+        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+        return categoryName === category && matchesSearch;
+      }),
+    }))
+    .filter((section) => section.items.length > 0);
+
+  const visibleCategoryNames = visibleSections.map((section) => section.category);
+  const tabCategories = searchQuery.trim() ? visibleCategoryNames : categories;
+
+  useEffect(() => {
+    if (tabCategories.length > 0 && !tabCategories.includes(activeCategory)) {
+      setActiveCategory(tabCategories[0]);
     }
 
-  }, [cafeteriaId]);
+    if (tabCategories.length === 0 && activeCategory !== '') {
+      setActiveCategory('');
+    }
+  }, [tabCategories, activeCategory]);
+
+  useEffect(() => {
+    if (visibleCategoryNames.length === 0) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((first, second) => Math.abs(first.boundingClientRect.top) - Math.abs(second.boundingClientRect.top));
+
+        const currentSection = visibleEntries[0];
+        const currentCategory = currentSection?.target.getAttribute('data-category');
+
+        if (currentCategory) {
+          setActiveCategory(currentCategory);
+        }
+      },
+      {
+        rootMargin: '-18% 0px -62% 0px',
+        threshold: [0.15, 0.3, 0.5],
+      }
+    );
+
+    const nodes = visibleCategoryNames
+      .map((category) => categorySectionRefs.current[category])
+      .filter((node): node is HTMLElement => Boolean(node));
+
+    nodes.forEach((node) => observer.observe(node));
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [visibleCategoryNames.join('|')]);
 
   const handleQuantityChange = (itemId: number, quantity: number) => {
     setQuantities((prev) => {
       const updatedQuantities = { ...prev, [itemId]: quantity };
-      localStorage.setItem('quantities', JSON.stringify(updatedQuantities)); 
+      localStorage.setItem('quantities', JSON.stringify(updatedQuantities));
       return updatedQuantities;
     });
   };
 
-  const filteredMenuItems = menuItems.filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-   
   const handleAddToCart = (item: MenuItem) => {
-    const quantity = quantities[item.id] || 0;
-  if (quantity > 0) {
-    setCart((prevCart) => {
-      const existingItemIndex = prevCart.findIndex(cartItem => cartItem.id === item.id);
-      let updatedCart;
+    if (!item.available) {
+      return;
+    }
 
-      if (existingItemIndex !== -1) {
-        // If the item already exists, update its quantity
-        updatedCart = prevCart.map((cartItem, index) =>
-          index === existingItemIndex ? { ...cartItem, quantity } : cartItem
+    const quantity = quantities[item.id] ?? 1;
+
+    setCart((prevCart) => {
+      const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
+
+      if (existingItem) {
+        return prevCart.map((cartItem) =>
+          cartItem.id === item.id
+            ? { ...cartItem, quantity: cartItem.quantity + quantity }
+            : cartItem
         );
-      } else {
-        // If it's a new item, add it to the cart
-        updatedCart = [...prevCart, { ...item, quantity }];
       }
-     
-      localStorage.setItem('cart', JSON.stringify(updatedCart));
-      return updatedCart;
+
+      return [...prevCart, { ...item, quantity }];
     });
 
     setAlertMessage(`${item.name} added to cart!`);
-    setTimeout(() => setAlertMessage(null), 3000);
-    }
+    window.setTimeout(() => setAlertMessage(null), 2500);
   };
 
-  const groupedMenuItems = filteredMenuItems.reduce((groups, item) => {
-    const category = item.category_name || 'Uncategorized';
-    if (!groups[category]) {
-      groups[category] = [];
-    }
-    groups[category].push(item);
-    return groups;
-  }, {} as Record<string, MenuItem[]>);
+  const handleTabClick = (category: string) => {
+    setActiveCategory(category);
+    categorySectionRefs.current[category]?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  };
 
   return (
-    <div className="container">
-      <Header onSearch={(query) => setSearchQuery(query)} />
-      <h1>Menu</h1>
+    <main className="menu-screen">
+      <div className="menu-screen__header-shell">
+        <Header />
+      </div>
 
-      {/* Bootstrap Alert */}
-      {alertMessage && (
-        <div className="alert alert-success text-center" role="alert">
-          {alertMessage}
-        </div>
-      )}
+      <section className="menu-layout">
+        <aside className="menu-sidebar">
+          <nav className="menu-breadcrumbs" aria-label="Breadcrumb">
+            <Link to="/">Home</Link>
+            <i className="bi bi-chevron-right" aria-hidden="true"></i>
+            <span>Cafeterias</span>
+          </nav>
 
-      {Object.keys(groupedMenuItems).length > 0 ? (
-        <div>
-          {Object.entries(groupedMenuItems).map(([category, items]) => (
-            <div key={category} className="menu-category">
-              <h2>{category}</h2>
-              <ul className='menu-list'>
-                {items.map((item) => (
-                  <li key={item.id} className="menu-container">
-                    {item.image && <img src={item.image} alt={item.name} width="100" />}
-                    <p>{item.available ? 'Available' : 'Not Available'}</p>
-                    <strong>{item.name}</strong>: ₦{item.price}
-                    <div className="buttons">
-                      <QuantitySelector
-                        initialQuantity={quantities[item.id] || 0}
-                        min={0}
-                        max={10}
-                        onQuantityChange={(quantity) => handleQuantityChange(item.id, quantity)}
-                      />
-                      <button
-                        className="add-to-cart"
-                        onClick={() => handleAddToCart(item)}
-                        disabled={(quantities[item.id] || 0) === 0}
-                      >
-                        Add to Cart
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+          <div className="menu-hero">
+            <div className="menu-hero__image-shell">
+              {cafeteria?.image ? (
+                <img src={cafeteria.image} alt={cafeteria.name} className="menu-hero__image" />
+              ) : (
+                <div className="menu-hero__placeholder">
+                  <i className="bi bi-shop-window" aria-hidden="true"></i>
+                </div>
+              )}
+
+              <div className="menu-hero__status-pill">
+                <img src={clockOutlineIcon} alt="" className="menu-hero__status-icon" aria-hidden="true" />
+                <span>30-45 mins</span>
+              </div>
+
+              <button type="button" className="menu-hero__favorite-btn" aria-label="Save cafeteria">
+                <img src={favoriteIcon} alt="" className="menu-hero__favorite-icon" aria-hidden="true" />
+              </button>
             </div>
-          ))}
-        </div>
-      ) : (
-        <p>No menu items available for this cafeteria.</p>
-      )}
-      <Footer/>
-    </div>
+
+            <h1>{cafeteria?.name || 'Loading cafeteria...'}</h1>
+
+            <div className="menu-hero__rating-row">
+              <div className="menu-hero__rating">
+                <img src={starIcon} alt="" className="menu-hero__rating-star" aria-hidden="true" />
+                <span>4.3</span>
+                <small>(3.9k+)</small>
+              </div>
+              <img
+                src={arrowForwardIcon}
+                alt=""
+                className="menu-hero__rating-arrow"
+                aria-hidden="true"
+              />
+            </div>
+
+            <p className="menu-hero__hours">OPEN UNTIL 08:00 PM</p>
+          </div>
+        </aside>
+
+        <section className="menu-panel">
+          {categories.length > 0 ? (
+            <>
+              <div className="menu-panel__controls">
+                <SearchField
+                  className="menu-panel__search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder={`Search ${cafeteria?.name || 'menu'}`}
+                  ariaLabel="Search this cafeteria menu"
+                />
+
+                <div className="menu-tabs" role="tablist" aria-label="Menu categories">
+                  {tabCategories.map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      role="tab"
+                      className={`menu-tab${activeCategory === category ? ' is-active' : ''}`}
+                      aria-selected={activeCategory === category}
+                      onClick={() => handleTabClick(category)}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {alertMessage && (
+                <div className="menu-toast" role="status" aria-live="polite">
+                  {alertMessage}
+                </div>
+              )}
+
+              {visibleSections.length > 0 ? (
+                <div className="menu-sections">
+                  {visibleSections.map((section) => (
+                    <section
+                      key={section.category}
+                      ref={(node) => {
+                        categorySectionRefs.current[section.category] = node;
+                      }}
+                      data-category={section.category}
+                      className="menu-category-section"
+                    >
+                      <div className="menu-section-heading">
+                        <h2>{section.category}</h2>
+                      </div>
+
+                      <ul className="menu-cards">
+                        {section.items.map((item) => (
+                          <li
+                            key={item.id}
+                            className={`menu-card${item.available ? '' : ' menu-card--unavailable'}`}
+                          >
+                            <div className="menu-card__content">
+                              <div className="menu-card__details">
+                                <h3>{item.name}</h3>
+
+                                {item.available ? (
+                                  <>
+                                    <p className="menu-card__price">{formatPrice(item.price)}</p>
+                                    <QuantitySelector
+                                      quantity={quantities[item.id] ?? 1}
+                                      min={1}
+                                      max={10}
+                                      onChange={(quantity) => handleQuantityChange(item.id, quantity)}
+                                    />
+                                  </>
+                                ) : (
+                                  <p className="menu-card__stock">Out of stock</p>
+                                )}
+                              </div>
+
+                              <div className="menu-card__media">
+                                {item.image ? (
+                                  <img src={item.image} alt={item.name} className="menu-card__image" />
+                                ) : (
+                                  <div className="menu-card__placeholder">
+                                    <i className="bi bi-image" aria-hidden="true"></i>
+                                  </div>
+                                )}
+
+                                {item.available ? (
+                                  <button
+                                    type="button"
+                                    className="menu-card__action"
+                                    onClick={() => handleAddToCart(item)}
+                                    aria-label={`Add ${item.name} to cart`}
+                                  >
+                                    <i className="bi bi-plus-lg" aria-hidden="true"></i>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="menu-card__action menu-card__action--disabled"
+                                    aria-label={`${item.name} is unavailable`}
+                                    disabled
+                                  >
+                                    <i className="bi bi-bell" aria-hidden="true"></i>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <div className="menu-empty-state">
+                  <h3>No items match this search.</h3>
+                  <p>Try a different keyword or switch to another category.</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="menu-empty-state">
+              <h3>No menu items available for this cafeteria.</h3>
+              <p>Check back later for new dishes and category updates.</p>
+            </div>
+          )}
+        </section>
+      </section>
+    </main>
   );
 };
 

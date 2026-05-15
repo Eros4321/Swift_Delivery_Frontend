@@ -1,0 +1,251 @@
+$font-family-brand: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+$font-family-plain: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 700;
+
+// Display
+$display-large: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-regular,
+  font-size: 57px,
+  line-height: 64px,
+  letter-spacing: -0.25px,
+);
+
+$display-medium: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-regular,
+  font-size: 45px,
+  line-height: 52px,
+  letter-spacing: 0,
+);
+
+$display-small: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-regular,
+  font-size: 36px,
+  line-height: 44px,
+  letter-spacing: 0,
+);
+
+$display-large-emphasized: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-medium,
+  font-size: 57px,
+  line-height: 64px,
+  letter-spacing: 0,
+);
+
+$display-medium-emphasized: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-medium,
+  font-size: 45px,
+  line-height: 52px,
+  letter-spacing: 0,
+);
+
+$display-small-emphasized: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-medium,
+  font-size: 36px,
+  line-height: 44px,
+  letter-spacing: 0,
+);
+
+// Headline
+$headline-large: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-regular,
+  font-size: 32px,
+  line-height: 40px,
+  letter-spacing: 0,
+);
+
+$headline-medium: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-regular,
+  font-size: 28px,
+  line-height: 36px,
+  letter-spacing: 0,
+);
+
+$headline-small: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-regular,
+  font-size: 24px,
+  line-height: 32px,
+  letter-spacing: 0,
+);
+
+$headline-large-emphasized: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-medium,
+  font-size: 32px,
+  line-height: 40px,
+  letter-spacing: 0,
+);
+
+$headline-medium-emphasized: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-medium,
+  font-size: 28px,
+  line-height: 36px,
+  letter-spacing: 0,
+);
+
+$headline-small-emphasized: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-medium,
+  font-size: 24px,
+  line-height: 32px,
+  letter-spacing: 0,
+);
+
+// Title
+$title-large: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-medium,
+  font-size: 22px,
+  line-height: 28px,
+  letter-spacing: 0,
+);
+
+$title-medium: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-medium,
+  font-size: 16px,
+  line-height: 24px,
+  letter-spacing: 0.15px,
+);
+
+$title-small: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-medium,
+  font-size: 14px,
+  line-height: 20px,
+  letter-spacing: 0.1px,
+);
+
+$title-large-emphasized: (
+  font-family: $font-family-brand,
+  font-weight: $font-weight-medium,
+  font-size: 22px,
+  line-height: 28px,
+  letter-spacing: 0,
+);
+
+$title-medium-emphasized: (
+  font-family: $font-family-plain,
+  font-weight: $font-weight-bold,
+  font-size: 16px,
+  line-height: 24px,
+  letter-spacing: 0.15px,
+);
+
+$title-small-emphasized: (
+  font-family: $font-family-plain,
+  font-weight: $font-weight-bold,
+  font-size: 14px,
+  line-height: 20px,
+  letter-spacing: 0.1px,
+);
+
+// Body
+$body-large: (
+  font-family: $font-family-plain,
+  font-weight: $font-weight-regular,
+  font-size: 16px,
+  line-height: 24px,
+  letter-spacing: 0.5px,
+);
+
+$body-medium: (
+  font-family: $font-family-plain,
+  font-weight: $font-weight-regular,
+  font-size: 14px,
+  line-height: 20px,
+  letter-spacing: 0.25px,
+);
+
+$body-small: (
+  font-family: $font-family-plain,
+  font-weight: $font-weight-regular,
+  font-size: 12px,
+  line-height: 16px,
+  letter-spacing: 0.4px,
+);
+
+$body-large-emphasized: (
+  font-family: $font-family-plain,
+  font-weight: $font-weight-medium,
+  font-size: 16px,
+  line-height: 24px,
+  letter-spacing: 0.15px,
+);
+
+$body-medium-emphasized: (
+  font-family: $font-family-plain,
+  font-weight: $font-weight-medium,
+  font-size: 14px,
+  line-height: 20px,
+  letter-spacing: 0.25px,
+);
+
+$body-small-emphasized: (
+  font-family: $font-family-plain,
+  font-weight: $font-weight-medium,
+  font-size: 12px,
+  line-height: 16px,
+  letter-spacing: 0.4px,
+);
+
+// Label
+$label-large: (
+  font-family: $font-family-plain,
+  font-weight: $font-weight-medium,
+  font-size: 14px,
+  line-height: 20px,
+  letter-spacing: 0.1px,
+);
+
+$label-medium: (
+  font-family: $font-family-plain,
+  font-weight: $font-weight-medium,
+  font-size: 12px,
+  line-height: 16px,
+  letter-spacing: 0.5px,
+);
+
+$label-small: (
+  font-family: $font-family-plain,
+  font-weight: $font-weight-medium,
+  font-size: 11px,
+  line-height: 16px,
+  letter-spacing: 0.5px,
+);
+
+$label-large-emphasized: (
+  font-family: $font-family-plain,
+  font-weight: $font-weight-bold,
+  font-size: 14px,
+  line-height: 20px,
+  letter-spacing: 0.1px,
+);
+
+$label-medium-emphasized: (
+  font-family: $font-family-plain,
+  font-weight: $font-weight-bold,
+  font-size: 12px,
+  line-height: 16px,
+  letter-spacing: 0.5px,
+);
+
+$label-small-emphasized: (
+  font-family: $font-family-plain,
+  font-weight: $font-weight-bold,
+  font-size: 11px,
+  line-height: 16px,
+  letter-spacing: 0.5px,
+);
