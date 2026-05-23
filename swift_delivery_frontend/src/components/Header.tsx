@@ -79,7 +79,11 @@ const Header: React.FC<HeaderProps> = ({ searchQuery = '', onSearch }) => {
         <img src={heartIcon} alt="" className="cafeteria-topbar__icon" aria-hidden="true" />
       </button>
 
-      <Link to="/orders" className="cafeteria-topbar__cart-btn" aria-label="View cart">
+      <Link
+        to="/orders"
+        className={`cafeteria-topbar__cart-btn${cartItemCount > 0 ? ' cafeteria-topbar__cart-btn--active' : ''}`}
+        aria-label="View cart"
+      >
         <img src={cartIcon} alt="" className="cafeteria-topbar__icon" aria-hidden="true" />
         <span>{cartItemCount}</span>
       </Link>

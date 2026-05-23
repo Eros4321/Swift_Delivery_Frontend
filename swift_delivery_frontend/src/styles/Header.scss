@@ -90,6 +90,15 @@
   span {
     @include type(t.$label-medium);
   }
+
+  &--active {
+    background: c.$primary;
+    color: c.$white;
+
+    .cafeteria-topbar__icon {
+      filter: brightness(0) invert(1);
+    }
+  }
 }
 
 .cafeteria-topbar__profile-btn {
@@ -108,3 +117,4 @@
     background: c.$primary;
   }
 }
+  

@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchCafeteriaDetails } from '../services/api.ts';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../styles/menu.scss';
 import Header from './Header';
 import SearchField from './SearchField';
@@ -10,6 +9,8 @@ import clockOutlineIcon from '../assets/ClockOutline2.svg';
 import favoriteIcon from '../assets/heart2.svg';
 import starIcon from '../assets/Star.svg';
 import arrowForwardIcon from '../assets/arrow_forward_ios.svg';
+import trashIcon from '../assets/TrashOutline.svg';
+import duplicateIcon from '../assets/duplicate.svg';
 
 interface MenuItem {
   id: number;
@@ -20,8 +21,14 @@ interface MenuItem {
   image?: string | null;
 }
 
-interface CartItem extends MenuItem {
+interface PackItem {
+  menuItem: MenuItem;
   quantity: number;
+}
+
+interface Pack {
+  id: number;
+  items: PackItem[];
 }
 
 interface CafeteriaDetails {
@@ -31,129 +38,193 @@ interface CafeteriaDetails {
   menu_items: MenuItem[];
 }
 
-interface QuantitySelectorProps {
-  quantity: number;
-  onChange: (newQuantity: number) => void;
-  min?: number;
-  max?: number;
+const formatPrice = (price: number | string) => `₦${Number(price).toLocaleString()}`;
+
+const packSubtotal = (pack: Pack) =>
+  pack.items.reduce((sum, pi) => sum + Number(pi.menuItem.price) * pi.quantity, 0);
+
+// ── Cart Panel ────────────────────────────────────────────────────────────────
+
+interface CartPanelProps {
+  packs: Pack[];
+  editingPackId: number | null;
+  onSetEditingPack: (id: number) => void;
+  onUpdateQuantity: (packId: number, itemId: number, delta: number) => void;
+  onDuplicatePack: (packId: number) => void;
+  onDeletePack: (packId: number) => void;
+  onAddPack: () => void;
+  onClearCart: () => void;
+  onCheckout: () => void;
 }
 
-interface QuantityMap {
-  [itemId: number]: number;
-}
-
-const QuantitySelector: React.FC<QuantitySelectorProps> = ({
-  quantity,
-  onChange,
-  min = 1,
-  max = 10,
+const CartPanel: React.FC<CartPanelProps> = ({
+  packs,
+  editingPackId,
+  onSetEditingPack,
+  onUpdateQuantity,
+  onDuplicatePack,
+  onDeletePack,
+  onAddPack,
+  onClearCart,
+  onCheckout,
 }) => {
-  const handleIncrease = () => {
-    if (quantity < max) {
-      onChange(quantity + 1);
-    }
-  };
-
-  const handleDecrease = () => {
-    if (quantity > min) {
-      onChange(quantity - 1);
-    }
-  };
+  const total = packs.reduce((sum, pack) => sum + packSubtotal(pack), 0);
 
   return (
-    <div className="menu-quantity-selector">
-      <button type="button" onClick={handleDecrease} aria-label="Reduce quantity">
-        -
-      </button>
-      <span>{quantity}</span>
-      <button type="button" onClick={handleIncrease} aria-label="Increase quantity">
-        +
-      </button>
-    </div>
+    <aside className="cart-panel">
+      <h2 className="cart-panel__title">Cart</h2>
+
+      <div className="cart-panel__tabs">
+        <button type="button" className="cart-panel__tab cart-panel__tab--active">
+          Delivery
+        </button>
+      </div>
+
+      <div className="cart-panel__body">
+        {packs.length === 0 ? (
+          <p className="cart-panel__empty">Your cart is empty. Add items to get started.</p>
+        ) : (
+          packs.map((pack, index) => (
+            <div key={pack.id} className="cart-pack">
+              <div className="cart-pack__header">
+                <div>
+                  <p className="cart-pack__name">Pack {index + 1}</p>
+                  {editingPackId === pack.id ? (
+                    <span className="cart-pack__editing">Currently editing</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="cart-pack__edit-btn"
+                      onClick={() => onSetEditingPack(pack.id)}
+                    >
+                      Click to edit
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="cart-pack__delete-btn"
+                  onClick={() => onDeletePack(pack.id)}
+                  aria-label={`Delete pack ${index + 1}`}
+                >
+                  <img src={trashIcon} alt="" aria-hidden="true" />
+                </button>
+              </div>
+
+              {pack.items.map((pi) => (
+                <div key={pi.menuItem.id} className="cart-pack__item">
+                  <div className="cart-pack__item-info">
+                    <p className="cart-pack__item-name">{pi.menuItem.name}</p>
+                    <p className="cart-pack__item-price">{formatPrice(pi.menuItem.price)}</p>
+                  </div>
+                  <div className="cart-pack__qty">
+                    <button
+                      type="button"
+                      onClick={() => onUpdateQuantity(pack.id, pi.menuItem.id, -1)}
+                      aria-label="Decrease"
+                    >
+                      -
+                    </button>
+                    <span>{pi.quantity}</span>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateQuantity(pack.id, pi.menuItem.id, 1)}
+                      aria-label="Increase"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                className="cart-pack__duplicate-btn"
+                onClick={() => onDuplicatePack(pack.id)}
+              >
+                <img src={duplicateIcon} alt="" aria-hidden="true" />
+                Duplicate pack
+              </button>
+            </div>
+          ))
+        )}
+
+        {packs.length > 0 && (
+          <>
+            <button type="button" className="cart-panel__add-pack-btn" onClick={onAddPack}>
+              + Add pack
+            </button>
+
+            <button type="button" className="cart-panel__clear-btn" onClick={onClearCart}>
+              <img src={trashIcon} alt="" aria-hidden="true" />
+              Clear cart
+            </button>
+
+            <div className="cart-panel__note">
+              <button type="button" className="cart-panel__note-btn">
+                □ Leave a note for the vendor
+                <span>Any requests, special vendor instructions etc.</span>
+              </button>
+              <span className="cart-panel__note-arrow">›</span>
+            </div>
+
+            <div className="cart-panel__subtotal">
+              <span>Subtotal</span>
+              <span>{formatPrice(total)}</span>
+            </div>
+
+            <button type="button" className="cart-panel__checkout-btn" onClick={onCheckout}>
+              Continue to checkout
+            </button>
+          </>
+        )}
+      </div>
+    </aside>
   );
 };
 
-const readCartFromStorage = () => {
-  const savedCart = localStorage.getItem('cart');
-
-  if (!savedCart) {
-    return [];
-  }
-
-  try {
-    const parsedCart = JSON.parse(savedCart);
-    return Array.isArray(parsedCart) ? (parsedCart as CartItem[]) : [];
-  } catch (error) {
-    console.error('Error parsing saved cart:', error);
-    return [];
-  }
-};
-
-const formatPrice = (price: number | string) => `₦${Number(price).toLocaleString()}`;
+// ── Menu ─────────────────────────────────────────────────────────────────────
 
 const Menu: React.FC = () => {
   const { cafeteriaId } = useParams<{ cafeteriaId: string }>();
   const [cafeteria, setCafeteria] = useState<CafeteriaDetails | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [quantities, setQuantities] = useState<QuantityMap>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('');
-  const [cart, setCart] = useState<CartItem[]>(() => readCartFromStorage());
+  const [packs, setPacks] = useState<Pack[]>([]);
+  const [editingPackId, setEditingPackId] = useState<number | null>(null);
+  const [nextPackId, setNextPackId] = useState(1);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const categorySectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
+  // ── Load cafeteria ──────────────────────────────────────────────────────────
   useEffect(() => {
     const getCafeteriaData = async () => {
-      if (cafeteriaId === undefined) {
-        return;
-      }
-
-      const numericCafeteriaId = Number(cafeteriaId);
-
-      if (Number.isNaN(numericCafeteriaId)) {
-        return;
-      }
-
+      if (cafeteriaId === undefined) return;
+      const numericId = Number(cafeteriaId);
+      if (Number.isNaN(numericId)) return;
       try {
-        const data = await fetchCafeteriaDetails(numericCafeteriaId);
+        const data = await fetchCafeteriaDetails(numericId);
         setCafeteria(data);
         setMenuItems(data.menu_items ?? []);
       } catch (error) {
         console.error('Error fetching cafeteria details:', error);
       }
     };
-
     getCafeteriaData();
-
-    const savedQuantities = localStorage.getItem('quantities');
-    if (savedQuantities) {
-      try {
-        setQuantities(JSON.parse(savedQuantities));
-      } catch (error) {
-        console.error('Error parsing saved quantities:', error);
-      }
-    }
   }, [cafeteriaId]);
 
+  // ── Persist cart ────────────────────────────────────────────────────────────
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
-    window.dispatchEvent(new Event('cart-updated'));
-  }, [cart]);
+    // Flatten packs into legacy cart format for Header cart count
+    const flatCart = packs.flatMap((pack) =>
+      pack.items.map((pi) => ({ ...pi.menuItem, quantity: pi.quantity }))
+    );
+    localStorage.setItem('cart', JSON.stringify(flatCart));
+    window.dispatchEvent(new Event('storage'));
+  }, [packs]);
 
-  useEffect(() => {
-    const syncCart = () => {
-      setCart(readCartFromStorage());
-    };
-
-    window.addEventListener('storage', syncCart);
-    window.addEventListener('focus', syncCart);
-
-    return () => {
-      window.removeEventListener('storage', syncCart);
-      window.removeEventListener('focus', syncCart);
-    };
-  }, []);
-
+  // ── Categories ──────────────────────────────────────────────────────────────
   const categories = Array.from(
     new Set(menuItems.map((item) => item.category_name || 'Uncategorized'))
   );
@@ -162,109 +233,137 @@ const Menu: React.FC = () => {
     .map((category) => ({
       category,
       items: menuItems.filter((item) => {
-        const categoryName = item.category_name || 'Uncategorized';
-        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-        return categoryName === category && matchesSearch;
+        const cat = item.category_name || 'Uncategorized';
+        return cat === category && item.name.toLowerCase().includes(searchQuery.toLowerCase());
       }),
     }))
-    .filter((section) => section.items.length > 0);
+    .filter((s) => s.items.length > 0);
 
-  const visibleCategoryNames = visibleSections.map((section) => section.category);
+  const visibleCategoryNames = visibleSections.map((s) => s.category);
   const tabCategories = searchQuery.trim() ? visibleCategoryNames : categories;
 
   useEffect(() => {
     if (tabCategories.length > 0 && !tabCategories.includes(activeCategory)) {
       setActiveCategory(tabCategories[0]);
     }
-
-    if (tabCategories.length === 0 && activeCategory !== '') {
-      setActiveCategory('');
-    }
+    if (tabCategories.length === 0 && activeCategory !== '') setActiveCategory('');
   }, [tabCategories, activeCategory]);
 
   useEffect(() => {
-    if (visibleCategoryNames.length === 0) {
-      return;
-    }
-
+    if (visibleCategoryNames.length === 0) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        const visibleEntries = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((first, second) => Math.abs(first.boundingClientRect.top) - Math.abs(second.boundingClientRect.top));
-
-        const currentSection = visibleEntries[0];
-        const currentCategory = currentSection?.target.getAttribute('data-category');
-
-        if (currentCategory) {
-          setActiveCategory(currentCategory);
-        }
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+        const cat = visible[0]?.target.getAttribute('data-category');
+        if (cat) setActiveCategory(cat);
       },
-      {
-        rootMargin: '-18% 0px -62% 0px',
-        threshold: [0.15, 0.3, 0.5],
-      }
+      { rootMargin: '-18% 0px -62% 0px', threshold: [0.15, 0.3, 0.5] }
     );
-
     const nodes = visibleCategoryNames
-      .map((category) => categorySectionRefs.current[category])
-      .filter((node): node is HTMLElement => Boolean(node));
-
-    nodes.forEach((node) => observer.observe(node));
-
-    return () => {
-      observer.disconnect();
-    };
+      .map((cat) => categorySectionRefs.current[cat])
+      .filter((n): n is HTMLElement => Boolean(n));
+    nodes.forEach((n) => observer.observe(n));
+    return () => observer.disconnect();
   }, [visibleCategoryNames.join('|')]);
 
-  const handleQuantityChange = (itemId: number, quantity: number) => {
-    setQuantities((prev) => {
-      const updatedQuantities = { ...prev, [itemId]: quantity };
-      localStorage.setItem('quantities', JSON.stringify(updatedQuantities));
-      return updatedQuantities;
-    });
+  const handleTabClick = (category: string) => {
+    setActiveCategory(category);
+    categorySectionRefs.current[category]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // ── Cart actions ────────────────────────────────────────────────────────────
+  const getOrCreateEditingPack = (): { packId: number; isNew: boolean } => {
+    if (editingPackId !== null && packs.some((p) => p.id === editingPackId)) {
+      return { packId: editingPackId, isNew: false };
+    }
+    const newId = nextPackId;
+    setNextPackId((n) => n + 1);
+    setPacks((prev) => [...prev, { id: newId, items: [] }]);
+    setEditingPackId(newId);
+    return { packId: newId, isNew: true };
   };
 
   const handleAddToCart = (item: MenuItem) => {
-    if (!item.available) {
-      return;
-    }
+    if (!item.available) return;
 
-    const quantity = quantities[item.id] ?? 1;
+    const { packId } = getOrCreateEditingPack();
 
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
-
-      if (existingItem) {
-        return prevCart.map((cartItem) =>
-          cartItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + quantity }
-            : cartItem
-        );
-      }
-
-      return [...prevCart, { ...item, quantity }];
-    });
+    setPacks((prev) =>
+      prev.map((pack) => {
+        if (pack.id !== packId) return pack;
+        const existing = pack.items.find((pi) => pi.menuItem.id === item.id);
+        if (existing) {
+          return {
+            ...pack,
+            items: pack.items.map((pi) =>
+              pi.menuItem.id === item.id ? { ...pi, quantity: pi.quantity + 1 } : pi
+            ),
+          };
+        }
+        return { ...pack, items: [...pack.items, { menuItem: item, quantity: 1 }] };
+      })
+    );
 
     setAlertMessage(`${item.name} added to cart!`);
     window.setTimeout(() => setAlertMessage(null), 2500);
   };
 
-  const handleTabClick = (category: string) => {
-    setActiveCategory(category);
-    categorySectionRefs.current[category]?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
+  const handleUpdateQuantity = (packId: number, itemId: number, delta: number) => {
+    setPacks((prev) =>
+      prev.map((pack) => {
+        if (pack.id !== packId) return pack;
+        const updated = pack.items
+          .map((pi) =>
+            pi.menuItem.id === itemId ? { ...pi, quantity: pi.quantity + delta } : pi
+          )
+          .filter((pi) => pi.quantity > 0);
+        return { ...pack, items: updated };
+      }).filter((pack) => pack.items.length > 0 || pack.id === editingPackId)
+    );
   };
 
+  const handleDuplicatePack = (packId: number) => {
+    const source = packs.find((p) => p.id === packId);
+    if (!source) return;
+    const newId = nextPackId;
+    setNextPackId((n) => n + 1);
+    setPacks((prev) => [...prev, { id: newId, items: source.items.map((pi) => ({ ...pi })) }]);
+    setEditingPackId(newId);
+  };
+
+  const handleDeletePack = (packId: number) => {
+    setPacks((prev) => prev.filter((p) => p.id !== packId));
+    if (editingPackId === packId) setEditingPackId(null);
+  };
+
+  const handleAddPack = () => {
+    const newId = nextPackId;
+    setNextPackId((n) => n + 1);
+    setPacks((prev) => [...prev, { id: newId, items: [] }]);
+    setEditingPackId(newId);
+  };
+
+  const handleClearCart = () => {
+    setPacks([]);
+    setEditingPackId(null);
+  };
+
+  const handleCheckout = () => {
+    window.location.href = '/checkout';
+  };
+
+  const cartIsOpen = packs.length > 0;
+
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <main className="menu-screen">
       <div className="menu-screen__header-shell">
         <Header />
       </div>
 
-      <section className="menu-layout">
+      <section className={`menu-layout${cartIsOpen ? ' menu-layout--cart-open' : ''}`}>
         <aside className="menu-sidebar">
           <nav className="menu-breadcrumbs" aria-label="Breadcrumb">
             <Link to="/">Home</Link>
@@ -281,12 +380,10 @@ const Menu: React.FC = () => {
                   <i className="bi bi-shop-window" aria-hidden="true"></i>
                 </div>
               )}
-
               <div className="menu-hero__status-pill">
                 <img src={clockOutlineIcon} alt="" className="menu-hero__status-icon" aria-hidden="true" />
                 <span>30-45 mins</span>
               </div>
-
               <button type="button" className="menu-hero__favorite-btn" aria-label="Save cafeteria">
                 <img src={favoriteIcon} alt="" className="menu-hero__favorite-icon" aria-hidden="true" />
               </button>
@@ -300,12 +397,7 @@ const Menu: React.FC = () => {
                 <span>4.3</span>
                 <small>(3.9k+)</small>
               </div>
-              <img
-                src={arrowForwardIcon}
-                alt=""
-                className="menu-hero__rating-arrow"
-                aria-hidden="true"
-              />
+              <img src={arrowForwardIcon} alt="" className="menu-hero__rating-arrow" aria-hidden="true" />
             </div>
 
             <p className="menu-hero__hours">OPEN UNTIL 08:00 PM</p>
@@ -323,7 +415,6 @@ const Menu: React.FC = () => {
                   placeholder={`Search ${cafeteria?.name || 'menu'}`}
                   ariaLabel="Search this cafeteria menu"
                 />
-
                 <div className="menu-tabs" role="tablist" aria-label="Menu categories">
                   {tabCategories.map((category) => (
                     <button
@@ -351,9 +442,7 @@ const Menu: React.FC = () => {
                   {visibleSections.map((section) => (
                     <section
                       key={section.category}
-                      ref={(node) => {
-                        categorySectionRefs.current[section.category] = node;
-                      }}
+                      ref={(node) => { categorySectionRefs.current[section.category] = node; }}
                       data-category={section.category}
                       className="menu-category-section"
                     >
@@ -370,17 +459,8 @@ const Menu: React.FC = () => {
                             <div className="menu-card__content">
                               <div className="menu-card__details">
                                 <h3>{item.name}</h3>
-
                                 {item.available ? (
-                                  <>
-                                    <p className="menu-card__price">{formatPrice(item.price)}</p>
-                                    <QuantitySelector
-                                      quantity={quantities[item.id] ?? 1}
-                                      min={1}
-                                      max={10}
-                                      onChange={(quantity) => handleQuantityChange(item.id, quantity)}
-                                    />
-                                  </>
+                                  <p className="menu-card__price">{formatPrice(item.price)}</p>
                                 ) : (
                                   <p className="menu-card__stock">Out of stock</p>
                                 )}
@@ -402,7 +482,7 @@ const Menu: React.FC = () => {
                                     onClick={() => handleAddToCart(item)}
                                     aria-label={`Add ${item.name} to cart`}
                                   >
-                                    <i className="bi bi-plus-lg" aria-hidden="true"></i>
+                                    +
                                   </button>
                                 ) : (
                                   <button
@@ -411,7 +491,7 @@ const Menu: React.FC = () => {
                                     aria-label={`${item.name} is unavailable`}
                                     disabled
                                   >
-                                    <i className="bi bi-bell" aria-hidden="true"></i>
+                                    🔔
                                   </button>
                                 )}
                               </div>
@@ -436,6 +516,20 @@ const Menu: React.FC = () => {
             </div>
           )}
         </section>
+
+        {cartIsOpen && (
+          <CartPanel
+            packs={packs}
+            editingPackId={editingPackId}
+            onSetEditingPack={setEditingPackId}
+            onUpdateQuantity={handleUpdateQuantity}
+            onDuplicatePack={handleDuplicatePack}
+            onDeletePack={handleDeletePack}
+            onAddPack={handleAddPack}
+            onClearCart={handleClearCart}
+            onCheckout={handleCheckout}
+          />
+        )}
       </section>
     </main>
   );
