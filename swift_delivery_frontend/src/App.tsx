@@ -5,7 +5,6 @@ import CafeteriaList from './components/CafeteriaList.tsx';
 import Orders from './components/orders.tsx';
 import Menu from './components/menu.tsx';
 import Checkout from './components/checkout.tsx';
-import 'bootstrap/dist/css/bootstrap.min.css';
 
 
 const App: React.FC = () => {

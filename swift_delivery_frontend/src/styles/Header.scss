@@ -1,6 +1,4 @@
 .header {
-    background-color: #f8f9fa; 
-    padding: 10px 20px; 
     width: 100%; 
     position: relative;
     display: flex;
@@ -10,6 +8,7 @@
 
     .icons {
         display: flex;
+        align-items: center;
         gap: 20px;
         top: 10px;
         right: 20px;

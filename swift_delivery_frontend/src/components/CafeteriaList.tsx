@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchCafeterias } from '../services/api.ts';  
 import '../styles/CafeteriaList.scss';
-import 'bootstrap-icons/font/bootstrap-icons.css';
+import { ArrowRightCircle } from 'lucide-react';
 import Header from './Header';
 import Footer from './Footer';
 
@@ -52,7 +52,7 @@ const CafeteriaList: React.FC = () => {
                 <strong>{cafeteria.name}</strong>
                 <div id="arrow-icon">
                   <Link to={`/cafeteria/${cafeteria.id}`}>
-                    <i className="bi bi-arrow-right-circle-fill"></i>
+                    <ArrowRightCircle size={24} />
                   </Link>
                 </div>
               </div>

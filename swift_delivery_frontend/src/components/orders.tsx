@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/orders.scss';
+import cart from '../assets/cart.png'
 
 interface CartItem {
   id: number;
@@ -63,7 +64,7 @@ const Orders: React.FC = () => {
 
   return (
     <div className="orders-container">
-      <h1>My Cart</h1>
+      
 
       {cart.length > 0 ? (
         <ul className="order-list">

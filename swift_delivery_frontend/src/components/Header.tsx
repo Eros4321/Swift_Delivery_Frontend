@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/Header.scss';
 import logo from '../assets/logo.png';
-import 'bootstrap-icons/font/bootstrap-icons.css';
+import { Search, Bell, ShoppingCart } from 'lucide-react';
 
 interface HeaderProps { 
   onSearch?: (query: string) => void;
@@ -16,7 +16,7 @@ const Header: React.FC<HeaderProps> = ({onSearch}) => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.search-input') && !target.closest('.bi-search')) {
+      if (!target.closest('.search-input') && !target.closest('.search-icon')) {
         setIsSearchVisible(false);
       }
     };
@@ -63,14 +63,15 @@ const Header: React.FC<HeaderProps> = ({onSearch}) => {
         <img src={logo} alt="Brand Logo" id="logo" />
       </div>
       <div className="icons">
-        <i
-          className={`bi bi-search search-icon ${isSearchVisible ? 'hidden' : ''}`}
+        <Search
+          className={`search-icon ${isSearchVisible ? 'hidden' : ''}`}
           onClick={handleSearchToggle}
           aria-label="Search"
-        ></i>
-        <i className="bi bi-bell" aria-label="Notifications"></i>
+          size={20}
+        />
+        <Bell aria-label="Notifications" size={20} />
         <Link to="/orders" className="cart-container">
-            <i className="bi bi-cart" aria-label="Cart"></i>
+            <ShoppingCart aria-label="Cart" size={20} />
             {cartItemCount > 0 && <span className="cart-badge">{cartItemCount}</span>}
         </Link>
       </div>
