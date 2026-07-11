@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/cafeterialist.tsx","./src/components/footer.tsx","./src/components/header.tsx","./src/components/checkout.tsx","./src/components/menu.tsx","./src/components/orders.tsx","./src/context/cartcontext.tsx","./src/services/api.ts"],"version":"5.6.2"}

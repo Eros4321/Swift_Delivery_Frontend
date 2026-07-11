@@ -36,6 +36,11 @@ export const fetchMenuItems = async (cafeteriaId: any) => {
   return response.data.menu_items;
 };
 
+export const fetchCafeteriaDetails = async (cafeteriaId: number) => {
+  const response = await api.get(`/cafeterias/${cafeteriaId}/`);
+  return response.data;
+};
+
 export const fetchCafeterias = async () => {
   const response = await api.get('/cafeterias/');
   return response.data;
