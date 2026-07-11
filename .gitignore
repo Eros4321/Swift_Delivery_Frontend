@@ -1,1 +1,28 @@
-node_modules
+# Dependencies
+**/node_modules/
+
+# Build output
+**/dist/
+**/dist-ssr/
+**/coverage/
+
+# Generated files
+*.tsbuildinfo
+*.css.map
+*.js.map
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local tooling and deployment state
+**/.expo/
+**/.vercel/
+
+# Local environment files
+**/.env
+**/.env.*
+!**/.env.example
