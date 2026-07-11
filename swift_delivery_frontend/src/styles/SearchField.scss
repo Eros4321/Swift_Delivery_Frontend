@@ -14,7 +14,10 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  width: 100%;
+  min-width: 0;
   min-height: 2rem;
+  box-sizing: border-box;
   padding: 0 0.5rem;
   border-radius: 0.5rem;
   background: c.$surface-container;

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchCafeterias } from '../services/api.ts';
 import '../styles/CafeteriaList.scss';
-import Header from './Header';
+import Header from '../components/Header';
 
 import filterIcon from '../assets/filter.svg';
 import starIcon from '../assets/Star.svg';
@@ -27,6 +27,8 @@ interface CategoryCard {
   key: 'browse-all' | 'cafeterias' | 'grillz' | 'pastries' | 'drinks';
 }
 
+type CategoryKey = CategoryCard['key'];
+
 const categoryCards: CategoryCard[] = [
   { label: 'Browse All', icon: iconBrowseAll, key: 'browse-all' },
   { label: 'Cafeterias', icon: iconCafeterias, key: 'cafeterias' },
@@ -39,7 +41,8 @@ const CafeteriaList: React.FC = () => {
   const [cafeterias, setCafeterias] = useState<Cafeteria[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredCafeterias, setFilteredCafeterias] = useState<Cafeteria[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('browse-all');
+  const [selectedCategory, setSelectedCategory] = useState<CategoryKey>('browse-all');
+  const selectedCategoryCard = categoryCards.find((category) => category.key === selectedCategory);
 
   useEffect(() => {
     const getCafeterias = async () => {
@@ -55,10 +58,8 @@ const CafeteriaList: React.FC = () => {
     getCafeterias();
   }, []);
 
-  const handleCategoryClick = (key: string) => {
-    if (key === 'browse-all') {
-      setSelectedCategory(key);
-    }
+  const handleCategoryClick = (key: CategoryKey) => {
+    setSelectedCategory(key);
   };
 
   useEffect(() => {
@@ -82,16 +83,16 @@ const CafeteriaList: React.FC = () => {
 
         <div className="cafeteria-categories" aria-label="Explore categories">
           {categoryCards.map((category) => (
-            <div
+            <button
+              type="button"
               key={category.label}
               className={`cafeteria-category cafeteria-category--${category.key}${selectedCategory === category.key ? ' is-active' : ''}`}
               onClick={() => handleCategoryClick(category.key)}
-              role="button"
               aria-pressed={selectedCategory === category.key}
             >
               <img src={category.icon} alt="" aria-hidden="true" className="cafeteria-category__icon" />
               <span>{category.label}</span>
-            </div>
+            </button>
           ))}
         </div>
 
@@ -100,7 +101,13 @@ const CafeteriaList: React.FC = () => {
           <img src={filterIcon} alt="" className="cafeteria-filter__icon" aria-hidden="true" />
         </button>
 
-        {filteredCafeterias.length > 0 ? (
+        {selectedCategory !== 'browse-all' ? (
+          <div className="cafeteria-coming-soon-state">
+            <img src={selectedCategoryCard?.icon} alt="" aria-hidden="true" />
+            <h2>{selectedCategoryCard?.label} is coming soon</h2>
+            <p>We are getting this category ready. Browse all vendors while we finish it.</p>
+          </div>
+        ) : filteredCafeterias.length > 0 ? (
           <ul className="cafeteria-grid">
             {filteredCafeterias.map((cafeteria) => (
               <li key={cafeteria.id} className="cafeteria-grid__item">

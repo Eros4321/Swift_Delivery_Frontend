@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../styles/checkout.scss';
 import { createOrder, getApiErrorMessage } from '../services/api.ts';
+import backIcon from '../assets/back.svg';
 
 interface CartItem {
   id: number;
@@ -10,6 +12,7 @@ interface CartItem {
 }
 
 const Checkout: React.FC = () => {
+  const navigate = useNavigate();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -63,7 +66,12 @@ const Checkout: React.FC = () => {
 
   return (
     <div className="checkout-container">
-      <h1>Checkout</h1>
+      <header className="checkout-header">
+        <button type="button" className="checkout-back-btn" onClick={() => navigate(-1)} aria-label="Go back">
+          <img src={backIcon} alt="" aria-hidden="true" />
+        </button>
+        <h1>Checkout</h1>
+      </header>
       <form onSubmit={handleSubmit} className="checkout-form">
         <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} required />
         <input type="tel" placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} required />

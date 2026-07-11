@@ -1,16 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { fetchCafeteriaDetails } from '../services/api.ts';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/menu.scss';
-import Header from './Header';
-import SearchField from './SearchField';
+import CartActionButton from '../components/CartActionButton';
+import Header from '../components/Header';
+import SearchField from '../components/SearchField';
 import clockOutlineIcon from '../assets/ClockOutline2.svg';
 import favoriteIcon from '../assets/heart2.svg';
 import starIcon from '../assets/Star.svg';
 import arrowForwardIcon from '../assets/arrow_forward_ios.svg';
+import cartNoteArrowIcon from '../assets/arrow_forward_ios 2.svg';
 import trashIcon from '../assets/TrashOutline.svg';
 import duplicateIcon from '../assets/duplicate.svg';
+import noteIcon from '../assets/note.svg';
+import plusIcon from '../assets/Plus.svg';
+import closeIcon from '../assets/close.svg';
+import backIcon from '../assets/back.svg';
+import vendorLogo from '../assets/ChatGPT Image May 6, 2026, 01_23_24 PM.png';
 
 interface MenuItem {
   id: number;
@@ -55,6 +62,10 @@ interface CartPanelProps {
   onAddPack: () => void;
   onClearCart: () => void;
   onCheckout: () => void;
+  isMobileDialog?: boolean;
+  vendorName?: string;
+  onViewCart?: () => void;
+  onClose?: () => void;
 }
 
 const CartPanel: React.FC<CartPanelProps> = ({
@@ -67,18 +78,45 @@ const CartPanel: React.FC<CartPanelProps> = ({
   onAddPack,
   onClearCart,
   onCheckout,
+  isMobileDialog = false,
+  vendorName = 'Double Portion (DP)',
+  onViewCart,
+  onClose,
 }) => {
   const total = packs.reduce((sum, pack) => sum + packSubtotal(pack), 0);
+  const cartPanelClassName = `cart-panel${isMobileDialog ? ' cart-panel--mobile' : ''}`;
 
   return (
-    <aside className="cart-panel">
-      <h2 className="cart-panel__title">Cart</h2>
+    <aside className={cartPanelClassName}>
+      {isMobileDialog ? (
+        <header className="cart-panel__mobile-header">
+          <button
+            type="button"
+            className="cart-panel__mobile-nav-btn"
+            onClick={onViewCart ?? onClose}
+            aria-label="View cart"
+          >
+            <img src={backIcon} alt="" aria-hidden="true" />
+          </button>
+          <div className="cart-panel__mobile-title">
+            <span>Your cart from</span>
+            <strong>{vendorName}</strong>
+          </div>
+          <button type="button" className="cart-panel__mobile-close-btn" onClick={onClose} aria-label="Close cart">
+            <img src={closeIcon} alt="" aria-hidden="true" />
+          </button>
+        </header>
+      ) : (
+        <>
+          <h2 className="cart-panel__title">Cart</h2>
 
-      <div className="cart-panel__tabs">
-        <button type="button" className="cart-panel__tab cart-panel__tab--active">
-          Delivery
-        </button>
-      </div>
+          <div className="cart-panel__tabs">
+            <button type="button" className="cart-panel__tab cart-panel__tab--active">
+              Delivery
+            </button>
+          </div>
+        </>
+      )}
 
       <div className="cart-panel__body">
         {packs.length === 0 ? (
@@ -137,48 +175,73 @@ const CartPanel: React.FC<CartPanelProps> = ({
                 </div>
               ))}
 
-              <button
-                type="button"
-                className="cart-pack__duplicate-btn"
-                onClick={() => onDuplicatePack(pack.id)}
-              >
-                <img src={duplicateIcon} alt="" aria-hidden="true" />
-                Duplicate pack
-              </button>
+              <div className="cart-pack__actions">
+                <button
+                  type="button"
+                  className="cart-pack__duplicate-btn"
+                  onClick={() => onDuplicatePack(pack.id)}
+                >
+                  <img src={duplicateIcon} alt="" aria-hidden="true" />
+                  Duplicate pack
+                </button>
+
+                {!isMobileDialog && index === packs.length - 1 && (
+                  <button type="button" className="cart-panel__add-pack-btn" onClick={onAddPack}>
+                    + Add pack
+                  </button>
+                )}
+              </div>
             </div>
           ))
         )}
 
         {packs.length > 0 && (
           <>
-            <button type="button" className="cart-panel__add-pack-btn" onClick={onAddPack}>
-              + Add pack
-            </button>
+            <div className="cart-panel__utility-actions">
+              <button type="button" className="cart-panel__clear-btn" onClick={onClearCart}>
+                <img src={trashIcon} alt="" aria-hidden="true" />
+                Clear cart
+              </button>
 
-            <button type="button" className="cart-panel__clear-btn" onClick={onClearCart}>
-              <img src={trashIcon} alt="" aria-hidden="true" />
-              Clear cart
-            </button>
+              {isMobileDialog && (
+                <button type="button" className="cart-panel__add-pack-btn" onClick={onClose}>
+                  <img src={plusIcon} alt="" aria-hidden="true" />
+                  Add more items
+                </button>
+              )}
+            </div>
 
             <div className="cart-panel__note">
               <button type="button" className="cart-panel__note-btn">
-                □ Leave a note for the vendor
-                <span>Any requests, special vendor instructions etc.</span>
+                <img src={noteIcon} alt="" aria-hidden="true" />
+                <span className="cart-panel__note-copy">
+                  Leave a note for the vendor
+                  <span>Any requests, special vendor instructions etc.</span>
+                </span>
               </button>
-              <span className="cart-panel__note-arrow">›</span>
+              <img
+                src={cartNoteArrowIcon}
+                alt=""
+                className="cart-panel__note-arrow"
+                aria-hidden="true"
+              />
             </div>
-
-            <div className="cart-panel__subtotal">
-              <span>Subtotal</span>
-              <span>{formatPrice(total)}</span>
-            </div>
-
-            <button type="button" className="cart-panel__checkout-btn" onClick={onCheckout}>
-              Continue to checkout
-            </button>
           </>
         )}
       </div>
+
+      {packs.length > 0 && (
+        <div className="cart-panel__footer">
+          <div className="cart-panel__subtotal">
+            <span>Subtotal</span>
+            <span>{formatPrice(total)}</span>
+          </div>
+
+          <CartActionButton onClick={onCheckout}>
+            Continue to checkout
+          </CartActionButton>
+        </div>
+      )}
     </aside>
   );
 };
@@ -187,6 +250,8 @@ const CartPanel: React.FC<CartPanelProps> = ({
 
 const Menu: React.FC = () => {
   const { cafeteriaId } = useParams<{ cafeteriaId: string }>();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [cafeteria, setCafeteria] = useState<CafeteriaDetails | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -195,6 +260,7 @@ const Menu: React.FC = () => {
   const [editingPackId, setEditingPackId] = useState<number | null>(null);
   const [nextPackId, setNextPackId] = useState(1);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [mobileCartIsOpen, setMobileCartIsOpen] = useState(false);
   const categorySectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   // ── Load cafeteria ──────────────────────────────────────────────────────────
@@ -221,8 +287,19 @@ const Menu: React.FC = () => {
       pack.items.map((pi) => ({ ...pi.menuItem, quantity: pi.quantity }))
     );
     localStorage.setItem('cart', JSON.stringify(flatCart));
+
+    if (packs.length > 0 && cafeteria) {
+      localStorage.setItem('cartVendor', JSON.stringify({
+        id: cafeteria.id,
+        name: cafeteria.name,
+        image: cafeteria.image,
+      }));
+    } else if (packs.length === 0) {
+      localStorage.removeItem('cartVendor');
+    }
+
     window.dispatchEvent(new Event('storage'));
-  }, [packs]);
+  }, [packs, cafeteria]);
 
   // ── Categories ──────────────────────────────────────────────────────────────
   const categories = Array.from(
@@ -274,34 +351,25 @@ const Menu: React.FC = () => {
   };
 
   // ── Cart actions ────────────────────────────────────────────────────────────
-  const getOrCreateEditingPack = (): { packId: number; isNew: boolean } => {
-    if (editingPackId !== null && packs.some((p) => p.id === editingPackId)) {
-      return { packId: editingPackId, isNew: false };
-    }
-    const newId = nextPackId;
-    setNextPackId((n) => n + 1);
-    setPacks((prev) => [...prev, { id: newId, items: [] }]);
-    setEditingPackId(newId);
-    return { packId: newId, isNew: true };
-  };
-
   const handleAddToCart = (item: MenuItem) => {
     if (!item.available) return;
 
-    const { packId } = getOrCreateEditingPack();
+    const editingPack = packs.find((pack) => pack.id === editingPackId);
+    const itemExistsInEditingPack = editingPack?.items.some((pi) => pi.menuItem.id === item.id);
+
+    if (!editingPack || itemExistsInEditingPack) {
+      const newId = nextPackId;
+      setNextPackId((n) => n + 1);
+      setPacks((prev) => [...prev, { id: newId, items: [{ menuItem: item, quantity: 1 }] }]);
+      setEditingPackId(newId);
+      setAlertMessage(`${item.name} added to cart!`);
+      window.setTimeout(() => setAlertMessage(null), 2500);
+      return;
+    }
 
     setPacks((prev) =>
       prev.map((pack) => {
-        if (pack.id !== packId) return pack;
-        const existing = pack.items.find((pi) => pi.menuItem.id === item.id);
-        if (existing) {
-          return {
-            ...pack,
-            items: pack.items.map((pi) =>
-              pi.menuItem.id === item.id ? { ...pi, quantity: pi.quantity + 1 } : pi
-            ),
-          };
-        }
+        if (pack.id !== editingPack.id) return pack;
         return { ...pack, items: [...pack.items, { menuItem: item, quantity: 1 }] };
       })
     );
@@ -354,7 +422,30 @@ const Menu: React.FC = () => {
     window.location.href = '/checkout';
   };
 
+  const handleViewCart = () => {
+    setMobileCartIsOpen(true);
+  };
+
+  const handleViewCartSummary = () => {
+    setMobileCartIsOpen(false);
+    navigate('/orders', {
+      state: {
+        backgroundLocation: location,
+        vendorName: cafeteria?.name,
+        mobileCartSummary: true,
+      },
+    });
+  };
+
+  const cartItemCount = packs.reduce(
+    (total, pack) => total + pack.items.reduce((sum, item) => sum + item.quantity, 0),
+    0
+  );
   const cartIsOpen = packs.length > 0;
+
+  useEffect(() => {
+    if (cartItemCount === 0) setMobileCartIsOpen(false);
+  }, [cartItemCount]);
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -380,6 +471,9 @@ const Menu: React.FC = () => {
                   <i className="bi bi-shop-window" aria-hidden="true"></i>
                 </div>
               )}
+              <div className="menu-hero__vendor-logo">
+                <img src={vendorLogo} alt={`${cafeteria?.name || 'Vendor'} logo`} />
+              </div>
               <div className="menu-hero__status-pill">
                 <img src={clockOutlineIcon} alt="" className="menu-hero__status-icon" aria-hidden="true" />
                 <span>30-45 mins</span>
@@ -531,6 +625,34 @@ const Menu: React.FC = () => {
           />
         )}
       </section>
+
+      {cartItemCount > 0 && (
+        <div className="menu-mobile-cart-action">
+          <CartActionButton onClick={handleViewCart}>
+            View cart ({cartItemCount})
+          </CartActionButton>
+        </div>
+      )}
+
+      {mobileCartIsOpen && cartItemCount > 0 && (
+        <div className="menu-mobile-cart-dialog">
+          <CartPanel
+            packs={packs}
+            editingPackId={editingPackId}
+            onSetEditingPack={setEditingPackId}
+            onUpdateQuantity={handleUpdateQuantity}
+            onDuplicatePack={handleDuplicatePack}
+            onDeletePack={handleDeletePack}
+            onAddPack={handleAddPack}
+            onClearCart={handleClearCart}
+            onCheckout={handleCheckout}
+            isMobileDialog
+            vendorName={cafeteria?.name || 'Double Portion (DP)'}
+            onViewCart={handleViewCartSummary}
+            onClose={() => setMobileCartIsOpen(false)}
+          />
+        </div>
+      )}
     </main>
   );
 };
