@@ -1,5 +1,16 @@
 {
+  "scripts": {
+    "dev": "npm --prefix swift_delivery_frontend run dev --",
+    "build": "npm --prefix swift_delivery_frontend run build",
+    "lint": "npm --prefix swift_delivery_frontend run lint",
+    "preview": "npm --prefix swift_delivery_frontend run preview"
+  },
   "dependencies": {
+    "expo": "^55.0.23",
     "sass": "^1.82.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.10",
+    "typescript": "~5.9.2"
   }
 }

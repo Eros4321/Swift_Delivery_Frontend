@@ -1,29 +1,23 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import logo from '../assets/logo.png';
+import React from "react";
 import '../styles/Footer.scss';
+import logo from '../assets/logo2.svg';
 
 const Footer: React.FC = () => {
-  return (
-    <footer className="footer">
-      <div className="footer-inner">
-        <div className="footer-brand">
-          <div className="footer-logo-wrap">
-            <img src={logo} alt="Swift Delivery" />
+    return (
+        <footer className="footer">
+          <div className="footer-section">
+            <div id="logo-container">
+              <img src={logo} alt="Brand Logo" id="logo" />
+            </div>
+            <ul className="footer-links">
+              <li><a href="#home">Home</a></li>
+              <li><a href="#about">About</a></li>
+              <li><a href="#contact">Contact</a></li>
+            </ul>
+            <p>&copy; 2024 All Rights Reserved</p>
           </div>
-          <p className="footer-tagline">Fast, fresh food delivered on campus.</p>
-        </div>
-
-        <ul className="footer-links">
-          <li><Link to="/">Home</Link></li>
-          <li><Link to="/orders">Orders</Link></li>
-          <li><a href="mailto:support@swiftdelivery.com">Contact</a></li>
-        </ul>
-
-        <p className="footer-copy">&copy; {new Date().getFullYear()} Swift Delivery</p>
-      </div>
-    </footer>
-  );
+        </footer>
+      );
 };
 
 export default Footer;

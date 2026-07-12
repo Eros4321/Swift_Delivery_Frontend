@@ -1,0 +1,43 @@
+@use 'colors' as c;
+@use 'typography' as t;
+@use 'sass:map';
+
+@mixin type($style) {
+  font-family: map.get($style, font-family);
+  font-weight: map.get($style, font-weight);
+  font-size: map.get($style, font-size);
+  line-height: map.get($style, line-height);
+  letter-spacing: map.get($style, letter-spacing);
+}
+
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 2rem;
+  box-sizing: border-box;
+  padding: 0 0.5rem;
+  border-radius: 0.5rem;
+  background: c.$surface-container;
+}
+
+.search-field__icon {
+  display: block;
+  flex-shrink: 0;
+}
+
+.search-field__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: c.$transparent;
+  color: c.$on-surface;
+  @include type(t.$label-medium);
+
+  &::placeholder {
+    color: c.$on-surface-variant;
+  }
+}

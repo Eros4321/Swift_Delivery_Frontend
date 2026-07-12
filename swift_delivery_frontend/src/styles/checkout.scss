@@ -1,12 +1,34 @@
+@use 'colors' as c;
+
 .checkout-container {
     max-width: 600px;
     margin: 0 auto;
     padding: 20px;
     text-align: center;
 
+    .checkout-header {
+        display: grid;
+        grid-template-columns: 2.8125rem minmax(0, 1fr) 2.8125rem;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .checkout-back-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.8125rem;
+        height: 2.8125rem;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: c.$key-primary;
+        cursor: pointer;
+    }
+
     h1 {
         font-size: 2rem;
-        margin-bottom: 20px;
+        margin: 0;
     }
 
     .checkout-form {
