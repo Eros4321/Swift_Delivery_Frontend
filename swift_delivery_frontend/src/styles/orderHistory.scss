@@ -1,0 +1,89 @@
+@use 'colors' as c;
+@use 'typography' as t;
+@use 'sass:map';
+
+@mixin type($style) {
+  font-family: map.get($style, font-family);
+  font-weight: map.get($style, font-weight);
+  font-size: map.get($style, font-size);
+  line-height: map.get($style, line-height);
+  letter-spacing: map.get($style, letter-spacing);
+}
+
+.order-history-results {
+  align-self: start;
+  min-width: 0;
+  padding-top: 2rem;
+}
+
+.order-history-list {
+  display: grid;
+  gap: 1rem;
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.order-history-card {
+  padding: 1.25rem;
+  border: 1px solid c.$outline-variant;
+  border-radius: 0.75rem;
+  background: c.$white;
+}
+
+.order-history-card__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+
+  h2,
+  time,
+  strong {
+    display: block;
+  }
+
+  h2 {
+    margin: 0;
+    @include type(t.$title-large-emphasized);
+  }
+
+  time {
+    margin-top: 0.15rem;
+    color: c.$on-surface-variant;
+    @include type(t.$body-medium);
+  }
+
+  strong {
+    flex: 0 0 auto;
+    color: c.$key-primary;
+    @include type(t.$title-large-emphasized);
+  }
+}
+
+.order-history-card__items {
+  margin: 1rem 0 0;
+  color: c.$on-surface;
+  @include type(t.$body-medium);
+}
+
+.order-history-card__count {
+  margin: 0.25rem 0 0;
+  color: c.$on-surface-variant;
+  @include type(t.$label-large);
+}
+
+@media (max-width: 680px) {
+  .order-history-results {
+    padding-top: 1.25rem;
+  }
+
+  .order-history-card {
+    padding: 1rem;
+  }
+
+  .order-history-card__heading {
+    gap: 0.75rem;
+  }
+}

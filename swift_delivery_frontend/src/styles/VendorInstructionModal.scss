@@ -1,0 +1,154 @@
+@use 'colors' as c;
+@use 'typography' as t;
+@use 'elevation' as e;
+@use 'sass:map';
+
+@mixin type($style) {
+  font-family: map.get($style, font-family);
+  font-weight: map.get($style, font-weight);
+  font-size: map.get($style, font-size);
+  line-height: map.get($style, line-height);
+  letter-spacing: map.get($style, letter-spacing);
+}
+
+.vendor-instruction-modal__backdrop {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(c.$black, 0.28);
+  animation: vendor-instruction-backdrop-in 160ms ease-out;
+}
+
+.vendor-instruction-modal {
+  width: min(28.5rem, 100%);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  border-radius: 1.5rem;
+  background: c.$white;
+  color: c.$on-surface;
+  box-shadow: e.$light-1;
+  animation: vendor-instruction-modal-in 200ms ease-out;
+}
+
+.vendor-instruction-modal__header {
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid c.$outline-variant;
+
+  h2 {
+    margin: 0;
+    @include type(t.$headline-small-emphasized);
+  }
+}
+
+.vendor-instruction-modal__form {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 2rem 0.75rem;
+
+  textarea {
+    width: 100%;
+    min-height: 5.5rem;
+    margin-top: 0.5rem;
+    resize: vertical;
+    padding: 0.75rem;
+    border: 1px solid c.$transparent;
+    border-radius: 0.25rem;
+    outline: 0;
+    background: c.$surface-container;
+    color: c.$on-surface;
+    @include type(t.$label-medium);
+
+    &::placeholder {
+      color: c.$grey;
+    }
+  }
+}
+
+.vendor-instruction-modal__label {
+  text-transform: uppercase;
+  @include type(t.$title-small-emphasized);
+}
+
+.vendor-instruction-modal__save-option {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.35rem;
+  margin: 0.75rem 0 0.875rem;
+  color: c.$on-surface;
+  cursor: pointer;
+  @include type(t.$label-large);
+
+  input {
+    appearance: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    border: 2px solid c.$black; 
+    border-radius: 0.25rem;
+    background: c.$white;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 0.75rem;
+    cursor: pointer;
+
+    &:checked {
+      border-color: c.$key-primary;
+      background-color: c.$key-primary;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='m3 8 3 3 7-7'/%3E%3C/svg%3E");
+    }
+
+    &:focus-visible {
+      outline: 2px solid c.$primary;
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+}
+
+.vendor-instruction-modal__error {
+  margin: -0.25rem 0 0.75rem;
+  color: c.$error;
+  @include type(t.$body-small);
+}
+
+.vendor-instruction-modal__submit {
+  min-height: 2.75rem;
+}
+
+@keyframes vendor-instruction-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes vendor-instruction-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.98);
+  }
+}
+
+@media (max-width: 520px) {
+  .vendor-instruction-modal__header {
+    padding: 1.125rem 1.25rem;
+  }
+
+  .vendor-instruction-modal__form {
+    padding-right: 1.25rem;
+    padding-left: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vendor-instruction-modal__backdrop,
+  .vendor-instruction-modal {
+    animation: none;
+  }
+}

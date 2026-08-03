@@ -26,3 +26,16 @@ pnpm-debug.log*
 **/.env
 **/.env.*
 !**/.env.example
+
+# Editor and operating-system files
+**/.idea/
+**/.DS_Store
+**/Thumbs.db
+*.swp
+*.swo
+
+# Tool caches
+**/.cache/
+**/.eslintcache
+**/.parcel-cache/
+**/.turbo/

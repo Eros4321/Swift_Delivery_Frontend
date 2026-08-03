@@ -10,24 +10,44 @@
   letter-spacing: map.get($style, letter-spacing);
 }
 
-.cart-action-button {
-  width: 100%;
+.primary-action-button {
+  display: flex;
+  width: var(--primary-action-button-width, 100%);
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
   padding: 0.75rem 4rem;
   border: 0;
   border-radius: 0.5rem;
   background: c.$key-primary;
   color: c.$white;
   cursor: pointer;
+  transition: background 0.2s ease, transform 160ms ease;
   @include type(t.$label-large-emphasized);
-  transition: background 0.2s ease;
 
   &:hover {
     background: c.$primary;
   }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid c.$primary;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    background: c.$key-primary;
+    cursor: not-allowed;
+    opacity: 0.45;
+    transform: none;
+  }
 }
 
 @media (max-width: 1180px) {
-  .cart-action-button {
+  .primary-action-button {
     padding-right: 1rem;
     padding-left: 1rem;
   }

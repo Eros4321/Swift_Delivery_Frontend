@@ -142,6 +142,11 @@
     object-fit: cover;
     display: block;
   }
+
+  > span {
+    color: c.$key-primary;
+    @include type(t.$title-large-emphasized);
+  }
 }
 
 .cart-vendor-summary__copy {

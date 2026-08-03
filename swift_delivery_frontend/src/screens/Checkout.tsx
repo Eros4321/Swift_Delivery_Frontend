@@ -1,32 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/checkout.scss';
 import { createOrder, getApiErrorMessage } from '../services/api.ts';
+import { useCart } from '../context/CartContext';
 import backIcon from '../assets/back.svg';
 
 interface CartItem {
   id: number;
   name: string;
-  price: number;
+  price: number | string;
   quantity: number;
 }
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const {
+    cart: serverCart,
+    cartItems,
+    isLoading: cartIsLoading,
+    clearCart: clearServerCart,
+  } = useCart();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
-    }
-  }, []);
-
-  const totalAmount = cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  const cart: CartItem[] = cartItems.map(({ menu_item_detail: item, quantity }) => ({
+    id: item.id,
+    name: item.name,
+    price: item.price,
+    quantity,
+  }));
+  const totalAmount = cart.reduce(
+    (total, item) => total + Number(item.price) * item.quantity,
+    0,
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +48,7 @@ const Checkout: React.FC = () => {
       customer_name: name.trim(),
       phone_number: phone.trim(),
       delivery_address: address.trim(),
+      ...(serverCart?.notes ? { delivery_notes: serverCart.notes } : {}),
       order_items: cart.map(item => ({
         menu_item: item.id, 
         quantity: item.quantity
@@ -50,15 +59,20 @@ const Checkout: React.FC = () => {
     setIsSubmitting(true);
     await createOrder(orderData);
 
-    alert("Order placed successfully!");
-    localStorage.removeItem("cart"); // Clear cart after successful order
-    setCart([]);
-    setName("");
-    setPhone("");
-    setAddress("");
+    try {
+      await clearServerCart();
+      localStorage.removeItem('cartVendor');
+    } catch (cartError) {
+      console.error('Order was placed, but the cart could not be cleared:', cartError);
+    }
+
+    alert('Order placed successfully!');
+    setName('');
+    setPhone('');
+    setAddress('');
   } catch (error: unknown) {
     console.error("Error placing order:", error);
-    alert(getApiErrorMessage(error));
+    alert(getApiErrorMessage(error, 'Unable to place your order right now. Please try again.'));
   } finally {
     setIsSubmitting(false);
   }
@@ -76,7 +90,7 @@ const Checkout: React.FC = () => {
         <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} required />
         <input type="tel" placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} required />
         <textarea placeholder="Delivery Address" value={address} onChange={(e) => setAddress(e.target.value)} required />
-        <button type="submit" className="place-order-btn" disabled={isSubmitting || cart.length === 0}>
+        <button type="submit" className="place-order-btn" disabled={isSubmitting || cartIsLoading || cart.length === 0}>
           {isSubmitting ? 'Placing Order...' : 'Place Order'}
         </button>
       </form>
@@ -87,7 +101,7 @@ const Checkout: React.FC = () => {
           <ul>
             {cart.map((item) => (
               <li key={item.id}>
-                {item.name} x {item.quantity} = ₦{item.price * item.quantity}
+                {item.name} x {item.quantity} = ₦{Number(item.price) * item.quantity}
               </li>
             ))}
           </ul>
