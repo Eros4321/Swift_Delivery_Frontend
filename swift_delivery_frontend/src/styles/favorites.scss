@@ -1,0 +1,32 @@
+@use 'colors' as c;
+@use 'typography' as t;
+@use 'sass:map';
+
+@mixin type($style) {
+  font-family: map.get($style, font-family);
+  font-weight: map.get($style, font-weight);
+  font-size: map.get($style, font-size);
+  line-height: map.get($style, line-height);
+  letter-spacing: map.get($style, letter-spacing);
+}
+
+.favorites-results {
+  align-self: start;
+  min-width: 0;
+  padding-top: 2rem;
+}
+
+.favorites-results__error {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: c.$error-container;
+  color: c.$on-error-container;
+  @include type(t.$body-medium);
+}
+
+@media (max-width: 680px) {
+  .favorites-results {
+    padding-top: 1.25rem;
+  }
+}

@@ -121,6 +121,15 @@ select {
     height: 100%;
     object-fit: cover;
   }
+
+  > span {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    place-items: center;
+    color: c.$key-primary;
+    @include type(t.$title-large-emphasized);
+  }
 }
 
 .menu-hero__status-pill {
@@ -146,20 +155,6 @@ select {
   position: absolute;
   right: 0.7rem;
   bottom: 0.7rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border: 0;
-  border-radius: 1000px;
-  background: rgba(c.$surface, 1);
-  cursor: pointer;
-}
-
-.menu-hero__favorite-icon {
-  display: block;
-  flex-shrink: 0;
 }
 
 .menu-hero__rating-row {
@@ -338,6 +333,7 @@ select {
 .menu-card__media {
   position: relative;
   overflow: hidden;
+  border-radius: 0.5rem 0 0 0.5rem;
   background: linear-gradient(180deg,
       rgba(c.$surface-container, 0.68) 0%,
       rgba(c.$white, 0.92) 100%);
@@ -834,9 +830,6 @@ select {
 }
 
 .cart-panel__note {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding: 1rem 0;
   border-top: 1px solid c.$primary-container;
   border-bottom: 2px solid c.$primary-container;
@@ -844,6 +837,8 @@ select {
 
 .cart-panel__note-btn {
   display: flex;
+  width: 100%;
+  min-width: 0;
   align-items: center;
   gap: 0.5rem;
   border: 0;
@@ -860,6 +855,8 @@ select {
 
 .cart-panel__note-copy {
   display: flex;
+  min-width: 0;
+  flex: 1;
   flex-direction: column;
   gap: 0.15rem;
   @include type(t.$label-large-emphasized);
@@ -1099,7 +1096,7 @@ select {
     padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
   }
 
-  .cart-panel--mobile .cart-action-button {
+  .cart-panel--mobile .primary-action-button {
     padding: 0.85rem 1rem;
   }
 }

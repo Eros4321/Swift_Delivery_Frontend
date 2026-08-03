@@ -1,13 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { fetchCafeteriaDetails } from '../services/api.ts';
+import {
+  addFavoriteVendor,
+  createSavedCartNote,
+  fetchCafeteriaDetails,
+  fetchFavoriteVendors,
+  getApiErrorMessage,
+  hasStoredAuthToken,
+  removeFavoriteVendor,
+  resolveApiMediaUrl,
+} from '../services/api.ts';
+import type { VendorDetails } from '../services/api.ts';
+import { useCart } from '../context/CartContext';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/menu.scss';
-import CartActionButton from '../components/CartActionButton';
+import PrimaryActionButton from '../components/PrimaryActionButton';
+import FavoriteButton from '../components/FavoriteButton';
 import Header from '../components/Header';
 import SearchField from '../components/SearchField';
+import VendorInstructionModal from '../components/VendorInstructionModal';
+import type { VendorInstructionSubmission } from '../components/VendorInstructionModal';
 import clockOutlineIcon from '../assets/ClockOutline2.svg';
-import favoriteIcon from '../assets/heart2.svg';
 import starIcon from '../assets/Star.svg';
 import arrowForwardIcon from '../assets/arrow_forward_ios.svg';
 import cartNoteArrowIcon from '../assets/arrow_forward_ios 2.svg';
@@ -17,7 +30,6 @@ import noteIcon from '../assets/note.svg';
 import plusIcon from '../assets/Plus.svg';
 import closeIcon from '../assets/close.svg';
 import backIcon from '../assets/back.svg';
-import vendorLogo from '../assets/ChatGPT Image May 6, 2026, 01_23_24 PM.png';
 
 interface MenuItem {
   id: number;
@@ -38,17 +50,42 @@ interface Pack {
   items: PackItem[];
 }
 
-interface CafeteriaDetails {
-  id: number;
-  name: string;
-  image: string | null;
-  menu_items: MenuItem[];
-}
-
 const formatPrice = (price: number | string) => `₦${Number(price).toLocaleString()}`;
+
+const compactNumberFormatter = new Intl.NumberFormat('en', {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
+const formatRatingCount = (count: number) => {
+  const formattedCount = compactNumberFormatter.format(count).toLowerCase();
+  return count >= 1000 ? `${formattedCount}+` : formattedCount;
+};
+
+const formatClosingTime = (closingTime: string | null) => {
+  if (!closingTime) return null;
+
+  const [hoursText, minutes] = closingTime.split(':');
+  const hours = Number(hoursText);
+
+  if (!Number.isInteger(hours) || hours < 0 || hours > 23 || !/^\d{2}$/.test(minutes ?? '')) {
+    return closingTime;
+  }
+
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const twelveHourValue = hours % 12 || 12;
+  return `${twelveHourValue.toString().padStart(2, '0')}:${minutes} ${period}`;
+};
 
 const packSubtotal = (pack: Pack) =>
   pack.items.reduce((sum, pi) => sum + Number(pi.menuItem.price) * pi.quantity, 0);
+
+const getCartSyncItems = (packs: Pack[]) => packs.flatMap((pack) =>
+  pack.items.map(({ menuItem, quantity }) => ({
+    menuItemId: menuItem.id,
+    quantity,
+  })),
+);
 
 // ── Cart Panel ────────────────────────────────────────────────────────────────
 
@@ -62,6 +99,7 @@ interface CartPanelProps {
   onAddPack: () => void;
   onClearCart: () => void;
   onCheckout: () => void;
+  onOpenVendorInstruction: () => void;
   isMobileDialog?: boolean;
   vendorName?: string;
   onViewCart?: () => void;
@@ -78,6 +116,7 @@ const CartPanel: React.FC<CartPanelProps> = ({
   onAddPack,
   onClearCart,
   onCheckout,
+  onOpenVendorInstruction,
   isMobileDialog = false,
   vendorName = 'Double Portion (DP)',
   onViewCart,
@@ -212,19 +251,23 @@ const CartPanel: React.FC<CartPanelProps> = ({
             </div>
 
             <div className="cart-panel__note">
-              <button type="button" className="cart-panel__note-btn">
+              <button
+                type="button"
+                className="cart-panel__note-btn"
+                onClick={onOpenVendorInstruction}
+              >
                 <img src={noteIcon} alt="" aria-hidden="true" />
                 <span className="cart-panel__note-copy">
                   Leave a note for the vendor
                   <span>Any requests, special vendor instructions etc.</span>
                 </span>
+                <img
+                  src={cartNoteArrowIcon}
+                  alt=""
+                  className="cart-panel__note-arrow"
+                  aria-hidden="true"
+                />
               </button>
-              <img
-                src={cartNoteArrowIcon}
-                alt=""
-                className="cart-panel__note-arrow"
-                aria-hidden="true"
-              />
             </div>
           </>
         )}
@@ -237,9 +280,9 @@ const CartPanel: React.FC<CartPanelProps> = ({
             <span>{formatPrice(total)}</span>
           </div>
 
-          <CartActionButton onClick={onCheckout}>
+          <PrimaryActionButton onClick={onCheckout}>
             Continue to checkout
-          </CartActionButton>
+          </PrimaryActionButton>
         </div>
       )}
     </aside>
@@ -252,7 +295,14 @@ const Menu: React.FC = () => {
   const { cafeteriaId } = useParams<{ cafeteriaId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const [cafeteria, setCafeteria] = useState<CafeteriaDetails | null>(null);
+  const {
+    cart: serverCart,
+    cartItems: serverCartItems,
+    isLoading: cartIsLoading,
+    synchronizeCart,
+    updateNotes,
+  } = useCart();
+  const [cafeteria, setCafeteria] = useState<VendorDetails | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('');
@@ -260,7 +310,15 @@ const Menu: React.FC = () => {
   const [editingPackId, setEditingPackId] = useState<number | null>(null);
   const [nextPackId, setNextPackId] = useState(1);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteStatusIsLoading, setFavoriteStatusIsLoading] = useState(false);
+  const [favoriteMutationIsPending, setFavoriteMutationIsPending] = useState(false);
   const [mobileCartIsOpen, setMobileCartIsOpen] = useState(false);
+  const [cartHasHydrated, setCartHasHydrated] = useState(false);
+  const [vendorInstructionModalIsOpen, setVendorInstructionModalIsOpen] = useState(false);
+  const [vendorInstructionIsSaving, setVendorInstructionIsSaving] = useState(false);
+  const [vendorInstructionError, setVendorInstructionError] = useState<string | null>(null);
+  const [failedVendorLogoUrl, setFailedVendorLogoUrl] = useState<string | null>(null);
   const categorySectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   // ── Load cafeteria ──────────────────────────────────────────────────────────
@@ -280,9 +338,65 @@ const Menu: React.FC = () => {
     getCafeteriaData();
   }, [cafeteriaId]);
 
+  useEffect(() => {
+    const vendorId = cafeteria?.id;
+    setIsFavorite(false);
+
+    if (!vendorId || !hasStoredAuthToken()) {
+      setFavoriteStatusIsLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setFavoriteStatusIsLoading(true);
+
+    void fetchFavoriteVendors(controller.signal)
+      .then((favorites) => {
+        setIsFavorite(favorites.some((favorite) => favorite.vendor === vendorId));
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          setAlertMessage(getApiErrorMessage(error, 'Unable to load favourite status.'));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setFavoriteStatusIsLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [cafeteria?.id]);
+
+  useEffect(() => {
+    if (cartIsLoading || cartHasHydrated) return;
+
+    if (serverCartItems.length > 0) {
+      const hydratedItems = serverCartItems.map(({ menu_item_detail: item, quantity }) => ({
+        menuItem: {
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          available: item.available,
+          category_name: item.category_name,
+          image: item.image,
+        },
+        quantity,
+      }));
+
+      setPacks([{ id: 1, items: hydratedItems }]);
+      setEditingPackId(1);
+      setNextPackId(2);
+    }
+
+    setCartHasHydrated(true);
+  }, [cartHasHydrated, cartIsLoading, serverCartItems]);
+
   // ── Persist cart ────────────────────────────────────────────────────────────
   useEffect(() => {
-    // Flatten packs into legacy cart format for Header cart count
+    if (!cartHasHydrated) return;
+
+    // Keep the legacy cart shape available while the server cart is the source of truth.
     const flatCart = packs.flatMap((pack) =>
       pack.items.map((pi) => ({ ...pi.menuItem, quantity: pi.quantity }))
     );
@@ -293,13 +407,26 @@ const Menu: React.FC = () => {
         id: cafeteria.id,
         name: cafeteria.name,
         image: cafeteria.image,
+        logo: cafeteria.logo,
       }));
     } else if (packs.length === 0) {
       localStorage.removeItem('cartVendor');
     }
 
-    window.dispatchEvent(new Event('storage'));
-  }, [packs, cafeteria]);
+    window.dispatchEvent(new Event('cart-updated'));
+  }, [cartHasHydrated, packs, cafeteria]);
+
+  useEffect(() => {
+    if (!cartHasHydrated || !hasStoredAuthToken()) return;
+
+    const pendingSync = window.setTimeout(() => {
+      void synchronizeCart(getCartSyncItems(packs)).catch((error: unknown) => {
+        setAlertMessage(getApiErrorMessage(error, 'Unable to update your cart.'));
+      });
+    }, 150);
+
+    return () => window.clearTimeout(pendingSync);
+  }, [cartHasHydrated, packs, synchronizeCart]);
 
   // ── Categories ──────────────────────────────────────────────────────────────
   const categories = Array.from(
@@ -350,9 +477,47 @@ const Menu: React.FC = () => {
     categorySectionRefs.current[category]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const handleFavoriteToggle = async () => {
+    if (!cafeteria || favoriteStatusIsLoading || favoriteMutationIsPending) return;
+
+    if (!hasStoredAuthToken()) {
+      navigate('/login');
+      return;
+    }
+
+    const nextFavoriteState = !isFavorite;
+    setFavoriteMutationIsPending(true);
+
+    try {
+      if (nextFavoriteState) {
+        await addFavoriteVendor(cafeteria.id);
+      } else {
+        await removeFavoriteVendor(cafeteria.id);
+      }
+
+      setIsFavorite(nextFavoriteState);
+    } catch (error: unknown) {
+      setAlertMessage(
+        getApiErrorMessage(
+          error,
+          nextFavoriteState
+            ? 'Unable to add this vendor to favourites.'
+            : 'Unable to remove this vendor from favourites.',
+        ),
+      );
+    } finally {
+      setFavoriteMutationIsPending(false);
+    }
+  };
+
   // ── Cart actions ────────────────────────────────────────────────────────────
   const handleAddToCart = (item: MenuItem) => {
     if (!item.available) return;
+
+    if (!hasStoredAuthToken()) {
+      navigate('/login');
+      return;
+    }
 
     const editingPack = packs.find((pack) => pack.id === editingPackId);
     const itemExistsInEditingPack = editingPack?.items.some((pi) => pi.menuItem.id === item.id);
@@ -362,8 +527,6 @@ const Menu: React.FC = () => {
       setNextPackId((n) => n + 1);
       setPacks((prev) => [...prev, { id: newId, items: [{ menuItem: item, quantity: 1 }] }]);
       setEditingPackId(newId);
-      setAlertMessage(`${item.name} added to cart!`);
-      window.setTimeout(() => setAlertMessage(null), 2500);
       return;
     }
 
@@ -374,8 +537,6 @@ const Menu: React.FC = () => {
       })
     );
 
-    setAlertMessage(`${item.name} added to cart!`);
-    window.setTimeout(() => setAlertMessage(null), 2500);
   };
 
   const handleUpdateQuantity = (packId: number, itemId: number, delta: number) => {
@@ -418,23 +579,79 @@ const Menu: React.FC = () => {
     setEditingPackId(null);
   };
 
-  const handleCheckout = () => {
-    window.location.href = '/checkout';
+  const handleOpenVendorInstruction = () => {
+    setVendorInstructionError(null);
+    setVendorInstructionModalIsOpen(true);
+  };
+
+  const handleDismissVendorInstruction = () => {
+    if (vendorInstructionIsSaving) return;
+    setVendorInstructionError(null);
+    setVendorInstructionModalIsOpen(false);
+  };
+
+  const handleSaveVendorInstruction = async ({
+    instruction,
+    saveForLater,
+  }: VendorInstructionSubmission) => {
+    setVendorInstructionIsSaving(true);
+    setVendorInstructionError(null);
+
+    try {
+      await updateNotes(instruction);
+
+      if (saveForLater) {
+        try {
+          await createSavedCartNote(instruction);
+        } catch (error: unknown) {
+          setVendorInstructionError(
+            getApiErrorMessage(
+              error,
+              'The instruction was added to your cart, but could not be saved for later.',
+            ),
+          );
+          return;
+        }
+      }
+
+      setVendorInstructionModalIsOpen(false);
+    } catch (error: unknown) {
+      setVendorInstructionError(
+        getApiErrorMessage(error, 'Unable to add the vendor instruction.'),
+      );
+    } finally {
+      setVendorInstructionIsSaving(false);
+    }
+  };
+
+  const handleCheckout = async () => {
+    try {
+      await synchronizeCart(getCartSyncItems(packs));
+      navigate('/checkout');
+    } catch (error: unknown) {
+      setAlertMessage(getApiErrorMessage(error, 'Unable to update your cart.'));
+    }
   };
 
   const handleViewCart = () => {
     setMobileCartIsOpen(true);
   };
 
-  const handleViewCartSummary = () => {
-    setMobileCartIsOpen(false);
-    navigate('/orders', {
-      state: {
-        backgroundLocation: location,
-        vendorName: cafeteria?.name,
-        mobileCartSummary: true,
-      },
-    });
+  const handleViewCartSummary = async () => {
+    try {
+      await synchronizeCart(getCartSyncItems(packs));
+      setMobileCartIsOpen(false);
+      navigate('/orders', {
+        state: {
+          backgroundLocation: location,
+          vendorName: cafeteria?.name,
+          vendorLogo: cafeteria?.logo,
+          mobileCartSummary: true,
+        },
+      });
+    } catch (error: unknown) {
+      setAlertMessage(getApiErrorMessage(error, 'Unable to update your cart.'));
+    }
   };
 
   const cartItemCount = packs.reduce(
@@ -442,6 +659,23 @@ const Menu: React.FC = () => {
     0
   );
   const cartIsOpen = packs.length > 0;
+  const ratingLabel = cafeteria
+    ? cafeteria.average_rating === null
+      ? 'New'
+      : cafeteria.average_rating.toFixed(1)
+    : '--';
+  const ratingCountLabel = cafeteria ? formatRatingCount(cafeteria.rating_count) : '--';
+  const closingTimeLabel = formatClosingTime(cafeteria?.closing_time ?? null);
+  const vendorLogoUrl = resolveApiMediaUrl(cafeteria?.logo);
+  const vendorLogoIsAvailable = Boolean(
+    vendorLogoUrl && failedVendorLogoUrl !== vendorLogoUrl,
+  );
+  const vendorInitial = cafeteria?.name.trim().charAt(0).toUpperCase() || 'V';
+  const hoursLabel = cafeteria
+    ? closingTimeLabel
+      ? `OPEN UNTIL ${closingTimeLabel}`
+      : 'CLOSING TIME UNAVAILABLE'
+    : 'LOADING HOURS...';
 
   useEffect(() => {
     if (cartItemCount === 0) setMobileCartIsOpen(false);
@@ -472,15 +706,29 @@ const Menu: React.FC = () => {
                 </div>
               )}
               <div className="menu-hero__vendor-logo">
-                <img src={vendorLogo} alt={`${cafeteria?.name || 'Vendor'} logo`} />
+                {vendorLogoIsAvailable && vendorLogoUrl ? (
+                  <img
+                    src={vendorLogoUrl}
+                    alt={`${cafeteria?.name || 'Vendor'} logo`}
+                    onError={() => setFailedVendorLogoUrl(vendorLogoUrl)}
+                  />
+                ) : (
+                  <span aria-hidden="true">{vendorInitial}</span>
+                )}
               </div>
               <div className="menu-hero__status-pill">
                 <img src={clockOutlineIcon} alt="" className="menu-hero__status-icon" aria-hidden="true" />
                 <span>30-45 mins</span>
               </div>
-              <button type="button" className="menu-hero__favorite-btn" aria-label="Save cafeteria">
-                <img src={favoriteIcon} alt="" className="menu-hero__favorite-icon" aria-hidden="true" />
-              </button>
+              <FavoriteButton
+                className="menu-hero__favorite-btn"
+                isFavorite={isFavorite}
+                onClick={handleFavoriteToggle}
+                inactiveLabel="Add cafeteria to favourites"
+                activeLabel="Remove cafeteria from favourites"
+                isPending={favoriteStatusIsLoading || favoriteMutationIsPending}
+                disabled={!cafeteria || favoriteStatusIsLoading || favoriteMutationIsPending}
+              />
             </div>
 
             <h1>{cafeteria?.name || 'Loading cafeteria...'}</h1>
@@ -488,13 +736,13 @@ const Menu: React.FC = () => {
             <div className="menu-hero__rating-row">
               <div className="menu-hero__rating">
                 <img src={starIcon} alt="" className="menu-hero__rating-star" aria-hidden="true" />
-                <span>4.3</span>
-                <small>(3.9k+)</small>
+                <span>{ratingLabel}</span>
+                <small>({ratingCountLabel})</small>
               </div>
               <img src={arrowForwardIcon} alt="" className="menu-hero__rating-arrow" aria-hidden="true" />
             </div>
 
-            <p className="menu-hero__hours">OPEN UNTIL 08:00 PM</p>
+            <p className="menu-hero__hours">{hoursLabel}</p>
           </div>
         </aside>
 
@@ -622,15 +870,16 @@ const Menu: React.FC = () => {
             onAddPack={handleAddPack}
             onClearCart={handleClearCart}
             onCheckout={handleCheckout}
+            onOpenVendorInstruction={handleOpenVendorInstruction}
           />
         )}
       </section>
 
       {cartItemCount > 0 && (
         <div className="menu-mobile-cart-action">
-          <CartActionButton onClick={handleViewCart}>
+          <PrimaryActionButton onClick={handleViewCart}>
             View cart ({cartItemCount})
-          </CartActionButton>
+          </PrimaryActionButton>
         </div>
       )}
 
@@ -646,12 +895,23 @@ const Menu: React.FC = () => {
             onAddPack={handleAddPack}
             onClearCart={handleClearCart}
             onCheckout={handleCheckout}
+            onOpenVendorInstruction={handleOpenVendorInstruction}
             isMobileDialog
             vendorName={cafeteria?.name || 'Double Portion (DP)'}
             onViewCart={handleViewCartSummary}
             onClose={() => setMobileCartIsOpen(false)}
           />
         </div>
+      )}
+
+      {vendorInstructionModalIsOpen && (
+        <VendorInstructionModal
+          currentInstruction={serverCart?.notes ?? ''}
+          errorMessage={vendorInstructionError}
+          isSaving={vendorInstructionIsSaving}
+          onDismiss={handleDismissVendorInstruction}
+          onSubmit={handleSaveVendorInstruction}
+        />
       )}
     </main>
   );

@@ -1,0 +1,169 @@
+@use 'colors' as c;
+@use 'typography' as t;
+@use 'sass:map';
+
+@mixin type($style) {
+  font-family: map.get($style, font-family);
+  font-weight: map.get($style, font-weight);
+  font-size: map.get($style, font-size);
+  line-height: map.get($style, line-height);
+  letter-spacing: map.get($style, letter-spacing);
+}
+
+.signup-screen {
+  min-height: 100vh;
+  overflow-x: clip;
+  background: c.$surface;
+  color: c.$on-surface;
+}
+
+.signup-screen__header {
+  background: c.$surface;
+}
+
+.signup-content {
+  width: min(100% - 2rem, 43rem);
+  margin: 0 auto;
+  padding: clamp(3rem, 8vh, 6rem) 0 4rem;
+}
+
+.signup-content__intro {
+  text-align: center;
+
+  h1 {
+    margin: 0;
+    color: c.$black;
+    @include type(t.$headline-large-emphasized);
+  }
+
+  p {
+    margin: 0.75rem 0 0;
+    color: c.$grey;
+    @include type(t.$body-medium);
+  }
+}
+
+.signup-form {
+  width: min(100%, 22.5rem);
+  margin: 2.25rem auto 0;
+}
+
+.signup-form__phone {
+  margin: 0;
+}
+
+.signup-form__name-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+
+.signup-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  input {
+    width: 100%;
+    min-width: 0;
+    min-height: 3rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid transparent;
+    border-radius: 0.5rem;
+    outline: 0;
+    background: c.$surface-container;
+    color: c.$on-surface;
+    transition: border-color 160ms ease;
+    @include type(t.$label-medium);
+
+    &:focus {
+      border-color: c.$primary;
+    }
+
+    &::placeholder {
+      color: c.$grey;
+      opacity: 1;
+    }
+  }
+}
+
+.signup-field__label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: c.$black;
+  text-transform: uppercase;
+  @include type(t.$label-medium-emphasized);
+
+  &::after {
+    content: '*';
+    color: c.$error;
+  }
+}
+
+.signup-field--email {
+  margin-top: 1.75rem;
+}
+
+.signup-form__error {
+  margin: 0.5rem 0 0;
+  color: c.$error;
+  @include type(t.$body-small);
+}
+
+.signup-form__submit {
+  margin: 5rem auto 0;
+}
+
+.signup-form__login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 1rem 0 0;
+  color: c.$grey;
+  text-align: center;
+  @include type(t.$body-medium);
+
+  a {
+    color: c.$secondary;
+    text-decoration: none;
+    @include type(t.$label-medium);
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: 2px solid c.$primary;
+      outline-offset: 2px;
+    }
+  }
+}
+
+@media (max-width: 680px) {
+  .signup-content {
+    width: min(100% - 1.5rem, 32rem);
+    padding: 3rem 0 2.5rem;
+  }
+
+  .signup-content__intro h1 {
+    @include type(t.$headline-small-emphasized);
+  }
+
+  .signup-form {
+    margin-top: 2rem;
+  }
+
+  .signup-form__submit {
+    margin-top: 3.5rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .signup-form__name-row {
+    grid-template-columns: 1fr;
+  }
+}

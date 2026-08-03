@@ -1,0 +1,212 @@
+@use 'colors' as c;
+@use 'typography' as t;
+@use 'elevation' as e;
+@use 'sass:map';
+
+@mixin type($style) {
+  font-family: map.get($style, font-family);
+  font-weight: map.get($style, font-weight);
+  font-size: map.get($style, font-size);
+  line-height: map.get($style, line-height);
+  letter-spacing: map.get($style, letter-spacing);
+}
+
+.cafeteria-topbar__location-shell {
+  position: relative;
+  min-width: 0;
+}
+
+.cafeteria-topbar__location {
+  width: 100%;
+}
+
+.cafeteria-topbar > .university-selector__scrim {
+  position: fixed;
+  z-index: 300;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background: rgba(c.$black, 0.28);
+  cursor: default;
+  animation: university-selector-scrim-in 160ms ease-out;
+}
+
+.university-selector__arrow {
+  transition: transform 0.2s ease;
+
+  &.is-open {
+    transform: rotate(180deg);
+  }
+}
+
+.university-selector {
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  left: 0;
+  z-index: 350;
+  width: min(22rem, calc(100vw - 2rem));
+  max-height: min(32rem, calc(100dvh - 6rem));
+  padding: 1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid c.$outline-variant;
+  border-radius: 0.75rem;
+  background: c.$surface;
+  box-shadow: e.$light-1;
+  color: c.$black;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.university-selector__header {
+  margin-bottom: 0.9rem;
+
+  h2 {
+    margin: 0;
+    color: c.$key-primary;
+    @include type(t.$title-medium-emphasized);
+  }
+
+  p {
+    margin: 0.2rem 0 0;
+    color: c.$grey;
+    @include type(t.$body-small);
+  }
+}
+
+.university-selector__detect-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid c.$outline-variant;
+  border-radius: 999px;
+  background: c.$primary-container;
+  color: c.$key-primary;
+  cursor: pointer;
+  @include type(t.$label-large);
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+}
+
+.university-selector__suggestion,
+.university-selector__choices {
+  margin-top: 1rem;
+}
+
+.university-selector__section-label {
+  display: block;
+  margin: 0 0 0.4rem;
+  color: c.$grey;
+  text-transform: uppercase;
+  @include type(t.$label-small);
+}
+
+.university-selector__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.7rem 0.8rem;
+  border: 0;
+  border-bottom: 1px solid c.$outline-variant;
+  background: c.$transparent;
+  color: c.$black;
+  cursor: pointer;
+  text-align: left;
+  @include type(t.$body-medium);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &:hover,
+  &:focus-visible,
+  &.is-selected {
+    border-radius: 0.5rem;
+    background: c.$surface-container;
+  }
+
+  &:focus-visible {
+    outline: 2px solid c.$key-primary;
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+
+  strong {
+    display: block;
+    @include type(t.$label-large);
+  }
+
+  small {
+    display: block;
+    margin-top: 0.15rem;
+    color: c.$grey;
+    @include type(t.$label-small);
+  }
+
+  i {
+    flex-shrink: 0;
+    color: c.$key-primary;
+    font-size: 1rem;
+  }
+}
+
+.university-selector__option--suggested {
+  border: 1px solid c.$key-primary;
+  border-radius: 0.65rem;
+  background: c.$primary-container;
+}
+
+.university-selector__message {
+  margin: 0.75rem 0 0;
+  color: c.$grey;
+  @include type(t.$body-small);
+}
+
+.university-selector__message--error {
+  padding: 0.6rem 0.7rem;
+  border-radius: 0.5rem;
+  background: c.$error-container;
+  color: c.$error;
+}
+
+@keyframes university-selector-scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 680px) {
+  .university-selector {
+    position: fixed;
+    top: 6.5rem;
+    right: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+    max-height: calc(100dvh - 7.25rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .university-selector__arrow,
+  .university-selector__scrim {
+    transition: none;
+    animation: none;
+  }
+}
