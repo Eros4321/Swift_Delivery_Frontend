@@ -3,14 +3,16 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   addFavoriteVendor,
   createSavedCartNote,
+  deleteSavedCartNote,
   fetchCafeteriaDetails,
   fetchFavoriteVendors,
+  fetchSavedCartNotes,
   getApiErrorMessage,
   hasStoredAuthToken,
   removeFavoriteVendor,
   resolveApiMediaUrl,
 } from '../services/api.ts';
-import type { VendorDetails } from '../services/api.ts';
+import type { SavedCartNote, VendorDetails } from '../services/api.ts';
 import { useCart } from '../context/CartContext';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/menu.scss';
@@ -318,6 +320,10 @@ const Menu: React.FC = () => {
   const [vendorInstructionModalIsOpen, setVendorInstructionModalIsOpen] = useState(false);
   const [vendorInstructionIsSaving, setVendorInstructionIsSaving] = useState(false);
   const [vendorInstructionError, setVendorInstructionError] = useState<string | null>(null);
+  const [savedCartNotes, setSavedCartNotes] = useState<SavedCartNote[]>([]);
+  const [savedCartNotesAreLoading, setSavedCartNotesAreLoading] = useState(false);
+  const [savedCartNotesError, setSavedCartNotesError] = useState<string | null>(null);
+  const [deletingSavedCartNoteId, setDeletingSavedCartNoteId] = useState<number | null>(null);
   const [failedVendorLogoUrl, setFailedVendorLogoUrl] = useState<string | null>(null);
   const categorySectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
@@ -337,6 +343,30 @@ const Menu: React.FC = () => {
     };
     getCafeteriaData();
   }, [cafeteriaId]);
+
+  useEffect(() => {
+    if (!vendorInstructionModalIsOpen || !hasStoredAuthToken()) {
+      setSavedCartNotesAreLoading(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    setSavedCartNotesAreLoading(true);
+    void fetchSavedCartNotes(controller.signal)
+      .then(setSavedCartNotes)
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setSavedCartNotesError(
+          getApiErrorMessage(error, 'Unable to load your saved notes.'),
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setSavedCartNotesAreLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [vendorInstructionModalIsOpen]);
 
   useEffect(() => {
     const vendorId = cafeteria?.id;
@@ -581,6 +611,8 @@ const Menu: React.FC = () => {
 
   const handleOpenVendorInstruction = () => {
     setVendorInstructionError(null);
+    setSavedCartNotesError(null);
+    setSavedCartNotes([]);
     setVendorInstructionModalIsOpen(true);
   };
 
@@ -621,6 +653,24 @@ const Menu: React.FC = () => {
       );
     } finally {
       setVendorInstructionIsSaving(false);
+    }
+  };
+
+  const handleDeleteSavedCartNote = async (savedNoteId: number) => {
+    setDeletingSavedCartNoteId(savedNoteId);
+    setSavedCartNotesError(null);
+
+    try {
+      await deleteSavedCartNote(savedNoteId);
+      setSavedCartNotes((currentNotes) => (
+        currentNotes.filter((savedNote) => savedNote.id !== savedNoteId)
+      ));
+    } catch (error: unknown) {
+      setSavedCartNotesError(
+        getApiErrorMessage(error, 'Unable to delete the saved note.'),
+      );
+    } finally {
+      setDeletingSavedCartNoteId(null);
     }
   };
 
@@ -909,7 +959,12 @@ const Menu: React.FC = () => {
           currentInstruction={serverCart?.notes ?? ''}
           errorMessage={vendorInstructionError}
           isSaving={vendorInstructionIsSaving}
+          savedNotes={savedCartNotes}
+          savedNotesError={savedCartNotesError}
+          savedNotesAreLoading={savedCartNotesAreLoading}
+          deletingSavedNoteId={deletingSavedCartNoteId}
           onDismiss={handleDismissVendorInstruction}
+          onDeleteSavedNote={handleDeleteSavedCartNote}
           onSubmit={handleSaveVendorInstruction}
         />
       )}

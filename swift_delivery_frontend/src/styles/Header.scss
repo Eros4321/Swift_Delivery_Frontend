@@ -173,6 +173,7 @@
   gap: 0.7rem;
   padding: 0.7rem 0.9rem;
   background: c.$transparent;
+  color: c.$on-surface;
   @include type(t.$label-medium);
 
   &:hover {
