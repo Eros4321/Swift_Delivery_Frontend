@@ -33,13 +33,69 @@
   animation: vendor-instruction-modal-in 200ms ease-out;
 }
 
+.vendor-instruction-modal--saved {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: min(24rem, calc(100dvh - 2rem));
+  overflow: visible;
+}
+
 .vendor-instruction-modal__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   padding: 1.25rem 2rem;
-  border-bottom: 1px solid c.$outline-variant;
+  border-bottom: 1px solid c.$primary-container;
 
   h2 {
+    flex: 1;
     margin: 0;
     @include type(t.$headline-small-emphasized);
+  }
+}
+
+.vendor-instruction-modal__back,
+.vendor-instruction-modal__close {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transform: translateY(-50%);
+
+  &:focus-visible {
+    outline: 2px solid c.$primary;
+    outline-offset: 2px;
+  }
+}
+
+.vendor-instruction-modal__back {
+  left: 1rem;
+  background: c.$primary;
+
+  img {
+    display: block;
+    width: 0.5rem;
+    height: auto;
+  }
+}
+
+.vendor-instruction-modal__close {
+  right: 1rem;
+  background: c.$surface-container;
+
+  img {
+    display: block;
+    width: 0.5rem;
+    height: auto;
   }
 }
 
@@ -122,6 +178,125 @@
   min-height: 2.75rem;
 }
 
+.vendor-instruction-modal__view-saved {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 0.4rem;
+  margin: 1rem 0 0.25rem;
+  padding: 0.25rem;
+  border: 0;
+  background: c.$transparent;
+  color: c.$primary;
+  cursor: pointer;
+  @include type(t.$label-medium-emphasized);
+
+  &:focus-visible {
+    outline: 2px solid c.$primary;
+    outline-offset: 2px;
+  }
+}
+
+.vendor-instruction-modal__saved-status,
+.vendor-instruction-modal__saved-error {
+  margin: 0.75rem 0 0;
+  text-align: center;
+  @include type(t.$body-small);
+}
+
+.vendor-instruction-modal__saved-status {
+  color: c.$on-surface-variant;
+}
+
+.vendor-instruction-modal__saved-error {
+  color: c.$error;
+}
+
+.vendor-instruction-modal__saved-notes {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 2rem 1.5rem;
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid c.$primary-container;
+  }
+}
+
+.vendor-instruction-modal__saved-note {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border: 0;
+  background: c.$transparent;
+  color: c.$on-surface;
+  text-align: left;
+  cursor: pointer;
+  @include type(t.$body-medium-emphasized);
+
+  > img {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: 0 0 auto;
+  }
+
+  span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  &:focus-visible {
+    outline: 2px solid c.$primary;
+    outline-offset: -2px;
+  }
+}
+
+.vendor-instruction-modal__delete-note {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  margin-left: 0.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 218, 214, 0.25);
+  cursor: pointer;
+
+  img {
+    display: block;
+  }
+
+  &:focus-visible {
+    outline: 2px solid c.$error;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.vendor-instruction-modal__saved-empty {
+  margin: 2.5rem 0;
+  color: c.$on-surface-variant;
+  text-align: center;
+  @include type(t.$body-medium);
+}
+
 @keyframes vendor-instruction-backdrop-in {
   from {
     opacity: 0;
@@ -141,6 +316,11 @@
   }
 
   .vendor-instruction-modal__form {
+    padding-right: 1.25rem;
+    padding-left: 1.25rem;
+  }
+
+  .vendor-instruction-modal__saved-notes {
     padding-right: 1.25rem;
     padding-left: 1.25rem;
   }

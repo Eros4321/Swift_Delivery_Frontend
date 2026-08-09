@@ -270,6 +270,7 @@ select {
 
   h2 {
     margin: 0;
+    color: c.$on-surface;
     @include type(t.$title-medium);
   }
 }

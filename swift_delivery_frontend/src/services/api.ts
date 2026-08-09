@@ -314,6 +314,15 @@ export const createSavedCartNote = async (note: string) => {
   return response.data;
 };
 
+export const fetchSavedCartNotes = async (signal?: AbortSignal) => {
+  const response = await api.get<SavedCartNote[]>('/cart/saved-notes/', { signal });
+  return response.data;
+};
+
+export const deleteSavedCartNote = async (savedNoteId: number) => {
+  await api.delete(`/cart/saved-notes/${savedNoteId}/`);
+};
+
 export const addOrReplaceCustomerCartItem = async (menuItemId: number, quantity: number) => {
   const response = await api.post<CustomerCart>('/cart/', {
     menu_item: menuItemId,
