@@ -242,6 +242,7 @@ select {
   padding: 0 0 1rem;
   border: 0;
   background: transparent;
+  color: c.$on-surface;
   white-space: nowrap;
   cursor: pointer;
   @include type(t.$label-medium);
@@ -270,7 +271,6 @@ select {
 
   h2 {
     margin: 0;
-    color: c.$on-surface;
     @include type(t.$title-medium);
   }
 }
