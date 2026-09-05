@@ -1,0 +1,92 @@
+@use 'colors' as c;
+@use 'typography' as t;
+@use 'sass:map';
+
+@mixin type($style) {
+  font-family: map.get($style, font-family);
+  font-weight: map.get($style, font-weight);
+  font-size: map.get($style, font-size);
+  line-height: map.get($style, line-height);
+  letter-spacing: map.get($style, letter-spacing);
+}
+
+.vendor-logo {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  color: c.$key-primary;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  > span {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    place-items: center;
+  }
+}
+
+.vendor-logo--menu {
+  position: absolute;
+  left: 0.7rem;
+  bottom: 0.55rem;
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid c.$black;
+  background: c.$surface;
+  box-shadow: 0 0.125rem 0.375rem rgba(c.$black, 0.18);
+  @include type(t.$title-large-emphasized);
+}
+
+.vendor-logo--cart {
+  width: 3.25rem;
+  height: 3.25rem;
+  border: 1px solid c.$black;
+  background: c.$white;
+  @include type(t.$title-large-emphasized);
+}
+
+.vendor-logo--checkout {
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid c.$outline-variant;
+  background: c.$white;
+  @include type(t.$headline-large-emphasized);
+}
+
+.vendor-logo--history {
+  width: 3rem;
+  height: 3rem;
+  border: 0;
+  background: c.$surface;
+  @include type(t.$title-large-emphasized);
+}
+
+@media (max-width: 680px) {
+  .vendor-logo--history {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+
+@media (max-width: 620px) {
+  .vendor-logo--menu {
+    left: 0.65rem;
+    bottom: 0.65rem;
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .cart-dialog--mobile-summary .vendor-logo--cart {
+    width: 3.125rem;
+    height: 3.125rem;
+  }
+}

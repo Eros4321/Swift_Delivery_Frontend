@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import locationMarker from '../assets/LocationMarker.svg';
 import arrowDown from '../assets/keyboard_arrow_down.svg';
+import AppIcon from './AppIcon';
+import { MobileLoadingSpinner } from './LoadingState';
 import {
   clearSelectedUniversity,
   detectUniversity,
@@ -189,6 +191,10 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({
 
   return (
     <div className="cafeteria-topbar__location-shell" ref={selectorRef}>
+      {(isLoadingUniversities || isDetecting || savingUniversityId !== null) && (
+        <MobileLoadingSpinner label="Updating your university" />
+      )}
+
       <button
         type="button"
         className="cafeteria-topbar__location"
@@ -223,7 +229,7 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({
             onClick={handleDetectUniversity}
             disabled={isDetecting || isLoadingUniversities}
           >
-            <i className="bi bi-crosshair" aria-hidden="true"></i>
+            <AppIcon name="crosshair" />
             {isDetecting ? 'Detecting your location...' : 'Use my current location'}
           </button>
 
@@ -247,8 +253,8 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({
                   {suggestionDistance !== null && <small>{suggestionDistance.toLocaleString()} m away</small>}
                 </span>
                 {savingUniversityId === suggestedUniversity.id
-                  ? <i className="bi bi-arrow-repeat" aria-hidden="true"></i>
-                  : <i className="bi bi-arrow-right" aria-hidden="true"></i>}
+                  ? <AppIcon name="repeat" />
+                  : <AppIcon name="arrow-right" />}
               </button>
             </div>
           )}
@@ -274,10 +280,10 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({
                   >
                     <strong>{university.name}</strong>
                     {savingUniversityId === university.id
-                      ? <i className="bi bi-arrow-repeat" aria-hidden="true"></i>
+                      ? <AppIcon name="repeat" />
                       : isSelected
-                        ? <i className="bi bi-check2" aria-hidden="true"></i>
-                        : <i className="bi bi-chevron-right" aria-hidden="true"></i>}
+                        ? <AppIcon name="check" />
+                        : <AppIcon name="chevron-right" />}
                   </button>
                 );
               })

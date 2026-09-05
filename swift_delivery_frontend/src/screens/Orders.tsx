@@ -1,7 +1,8 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { resolveApiMediaUrl } from '../services/api';
+import { MobileLoadingSpinner } from '../components/LoadingState';
+import VendorLogo from '../components/VendorLogo';
 import '../styles/orders.scss';
 import emptyCartIllustration from '../assets/Girl looking at empty plate.svg';
 import closeIcon from '../assets/close.svg';
@@ -28,49 +29,19 @@ interface OrdersLocationState {
   mobileCartSummary?: boolean;
 }
 
-interface StoredCartVendor {
-  name?: string;
-  logo?: string | null;
-}
-
-const getStoredCartVendor = () => {
-  const savedVendor = localStorage.getItem('cartVendor');
-  if (!savedVendor) return null;
-
-  try {
-    const parsedVendor = JSON.parse(savedVendor) as StoredCartVendor;
-    return {
-      name: typeof parsedVendor.name === 'string' && parsedVendor.name.trim()
-        ? parsedVendor.name
-        : undefined,
-      logo: typeof parsedVendor.logo === 'string' ? parsedVendor.logo : null,
-    };
-  } catch {
-    return null;
-  }
-};
-
 const Orders: React.FC<OrdersProps> = ({ isModal = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const {
+    cartVendor,
     cartItems,
     isLoading,
     error: cartError,
     clearCart: clearServerCart,
   } = useCart();
   const routeState = location.state as OrdersLocationState | null;
-  const storedCartVendor = getStoredCartVendor();
-  const vendorName = routeState?.vendorName ?? storedCartVendor?.name ?? 'Vendor';
-  const vendorLogo = routeState?.vendorLogo !== undefined
-    ? routeState.vendorLogo
-    : storedCartVendor?.logo;
-  const vendorLogoUrl = resolveApiMediaUrl(vendorLogo);
-  const [failedVendorLogoUrl, setFailedVendorLogoUrl] = React.useState<string | null>(null);
-  const vendorLogoIsAvailable = Boolean(
-    vendorLogoUrl && failedVendorLogoUrl !== vendorLogoUrl,
-  );
-  const vendorInitial = vendorName.trim().charAt(0).toUpperCase() || 'V';
+  const vendorName = cartVendor?.name ?? routeState?.vendorName ?? 'Vendor';
+  const vendorLogo = cartVendor?.logo ?? routeState?.vendorLogo;
   const isMobileCartSummary = routeState?.mobileCartSummary === true;
   const cart: CartItem[] = cartItems.map(({ menu_item_detail: item, quantity }) => ({
     id: item.id,
@@ -103,6 +74,7 @@ const Orders: React.FC<OrdersProps> = ({ isModal = false }) => {
   if (cart.length === 0) {
     const emptyCartDialog = (
       <div className="cart-modal-scrim" onClick={closeCart}>
+        {isLoading && <MobileLoadingSpinner label="Loading your cart" />}
         <section
           className="cart-dialog cart-dialog--empty"
           role="dialog"
@@ -173,17 +145,7 @@ const Orders: React.FC<OrdersProps> = ({ isModal = false }) => {
           className="cart-vendor-summary"
           onClick={isMobileCartSummary ? closeCart : () => navigate('/checkout')}
         >
-          <span className="cart-vendor-summary__logo" aria-hidden="true">
-            {vendorLogoIsAvailable && vendorLogoUrl ? (
-              <img
-                src={vendorLogoUrl}
-                alt=""
-                onError={() => setFailedVendorLogoUrl(vendorLogoUrl)}
-              />
-            ) : (
-              <span>{vendorInitial}</span>
-            )}
-          </span>
+          <VendorLogo name={vendorName} source={vendorLogo} variant="cart" />
           <span className="cart-vendor-summary__copy">
             <strong>{vendorName}</strong>
             <span>

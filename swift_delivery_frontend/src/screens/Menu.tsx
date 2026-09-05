@@ -10,18 +10,19 @@ import {
   getApiErrorMessage,
   hasStoredAuthToken,
   removeFavoriteVendor,
-  resolveApiMediaUrl,
 } from '../services/api.ts';
 import type { SavedCartNote, VendorDetails } from '../services/api.ts';
 import { useCart } from '../context/CartContext';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/menu.scss';
+import AppIcon from '../components/AppIcon';
 import PrimaryActionButton from '../components/PrimaryActionButton';
 import FavoriteButton from '../components/FavoriteButton';
 import Header from '../components/Header';
 import SearchField from '../components/SearchField';
-import VendorInstructionModal from '../components/VendorInstructionModal';
-import type { VendorInstructionSubmission } from '../components/VendorInstructionModal';
+import InstructionModal from '../components/InstructionModal';
+import type { InstructionSubmission } from '../components/InstructionModal';
+import LoadingSkeleton from '../components/LoadingState';
+import VendorLogo from '../components/VendorLogo';
 import clockOutlineIcon from '../assets/ClockOutline2.svg';
 import starIcon from '../assets/Star.svg';
 import arrowForwardIcon from '../assets/arrow_forward_ios.svg';
@@ -299,13 +300,16 @@ const Menu: React.FC = () => {
   const navigate = useNavigate();
   const {
     cart: serverCart,
+    cartVendor,
     cartItems: serverCartItems,
     isLoading: cartIsLoading,
     synchronizeCart,
-    updateNotes,
+    updateInstruction,
   } = useCart();
   const [cafeteria, setCafeteria] = useState<VendorDetails | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [menuIsLoading, setMenuIsLoading] = useState(true);
+  const [menuErrorMessage, setMenuErrorMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('');
   const [packs, setPacks] = useState<Pack[]>([]);
@@ -324,24 +328,58 @@ const Menu: React.FC = () => {
   const [savedCartNotesAreLoading, setSavedCartNotesAreLoading] = useState(false);
   const [savedCartNotesError, setSavedCartNotesError] = useState<string | null>(null);
   const [deletingSavedCartNoteId, setDeletingSavedCartNoteId] = useState<number | null>(null);
-  const [failedVendorLogoUrl, setFailedVendorLogoUrl] = useState<string | null>(null);
   const categorySectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const currentCafeteriaOwnsHydratedCart = Boolean(
+    cafeteria
+    && serverCartItems.length > 0
+    && serverCartItems.every(({ menu_item_detail: menuItem }) => (
+      Array.isArray(menuItem.vendors) && menuItem.vendors.includes(cafeteria.id)
+    )),
+  );
+  const displayedCartVendor = cartVendor ?? (
+    serverCartItems.length === 0 || currentCafeteriaOwnsHydratedCart ? cafeteria : null
+  );
 
   // ── Load cafeteria ──────────────────────────────────────────────────────────
   useEffect(() => {
+    let isActive = true;
+
     const getCafeteriaData = async () => {
-      if (cafeteriaId === undefined) return;
+      setMenuIsLoading(true);
+      setMenuErrorMessage('');
+      setCafeteria(null);
+      setMenuItems([]);
+
+      if (cafeteriaId === undefined) {
+        setMenuErrorMessage('This vendor could not be found.');
+        setMenuIsLoading(false);
+        return;
+      }
+
       const numericId = Number(cafeteriaId);
-      if (Number.isNaN(numericId)) return;
+      if (Number.isNaN(numericId)) {
+        setMenuErrorMessage('This vendor could not be found.');
+        setMenuIsLoading(false);
+        return;
+      }
+
       try {
         const data = await fetchCafeteriaDetails(numericId);
+        if (!isActive) return;
         setCafeteria(data);
         setMenuItems(data.menu_items ?? []);
-      } catch (error) {
-        console.error('Error fetching cafeteria details:', error);
+      } catch (error: unknown) {
+        if (!isActive) return;
+        setMenuErrorMessage(getApiErrorMessage(error, 'Unable to load this vendor menu.'));
+      } finally {
+        if (isActive) setMenuIsLoading(false);
       }
     };
-    getCafeteriaData();
+
+    void getCafeteriaData();
+    return () => {
+      isActive = false;
+    };
   }, [cafeteriaId]);
 
   useEffect(() => {
@@ -353,7 +391,7 @@ const Menu: React.FC = () => {
     const controller = new AbortController();
 
     setSavedCartNotesAreLoading(true);
-    void fetchSavedCartNotes(controller.signal)
+    void fetchSavedCartNotes('vendor', controller.signal)
       .then(setSavedCartNotes)
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
@@ -432,19 +470,8 @@ const Menu: React.FC = () => {
     );
     localStorage.setItem('cart', JSON.stringify(flatCart));
 
-    if (packs.length > 0 && cafeteria) {
-      localStorage.setItem('cartVendor', JSON.stringify({
-        id: cafeteria.id,
-        name: cafeteria.name,
-        image: cafeteria.image,
-        logo: cafeteria.logo,
-      }));
-    } else if (packs.length === 0) {
-      localStorage.removeItem('cartVendor');
-    }
-
     window.dispatchEvent(new Event('cart-updated'));
-  }, [cartHasHydrated, packs, cafeteria]);
+  }, [cartHasHydrated, packs]);
 
   useEffect(() => {
     if (!cartHasHydrated || !hasStoredAuthToken()) return;
@@ -625,16 +652,16 @@ const Menu: React.FC = () => {
   const handleSaveVendorInstruction = async ({
     instruction,
     saveForLater,
-  }: VendorInstructionSubmission) => {
+  }: InstructionSubmission) => {
     setVendorInstructionIsSaving(true);
     setVendorInstructionError(null);
 
     try {
-      await updateNotes(instruction);
+      await updateInstruction('vendor', instruction);
 
       if (saveForLater) {
         try {
-          await createSavedCartNote(instruction);
+          await createSavedCartNote(instruction, 'vendor');
         } catch (error: unknown) {
           setVendorInstructionError(
             getApiErrorMessage(
@@ -694,8 +721,8 @@ const Menu: React.FC = () => {
       navigate('/orders', {
         state: {
           backgroundLocation: location,
-          vendorName: cafeteria?.name,
-          vendorLogo: cafeteria?.logo,
+          vendorName: displayedCartVendor?.name,
+          vendorLogo: displayedCartVendor?.logo,
           mobileCartSummary: true,
         },
       });
@@ -716,11 +743,6 @@ const Menu: React.FC = () => {
     : '--';
   const ratingCountLabel = cafeteria ? formatRatingCount(cafeteria.rating_count) : '--';
   const closingTimeLabel = formatClosingTime(cafeteria?.closing_time ?? null);
-  const vendorLogoUrl = resolveApiMediaUrl(cafeteria?.logo);
-  const vendorLogoIsAvailable = Boolean(
-    vendorLogoUrl && failedVendorLogoUrl !== vendorLogoUrl,
-  );
-  const vendorInitial = cafeteria?.name.trim().charAt(0).toUpperCase() || 'V';
   const hoursLabel = cafeteria
     ? closingTimeLabel
       ? `OPEN UNTIL ${closingTimeLabel}`
@@ -742,7 +764,7 @@ const Menu: React.FC = () => {
         <aside className="menu-sidebar">
           <nav className="menu-breadcrumbs" aria-label="Breadcrumb">
             <Link to="/">Home</Link>
-            <i className="bi bi-chevron-right" aria-hidden="true"></i>
+            <AppIcon name="chevron-right" />
             <span>Cafeterias</span>
           </nav>
 
@@ -752,20 +774,15 @@ const Menu: React.FC = () => {
                 <img src={cafeteria.image} alt={cafeteria.name} className="menu-hero__image" />
               ) : (
                 <div className="menu-hero__placeholder">
-                  <i className="bi bi-shop-window" aria-hidden="true"></i>
+                  <AppIcon name="shop-window" />
                 </div>
               )}
-              <div className="menu-hero__vendor-logo">
-                {vendorLogoIsAvailable && vendorLogoUrl ? (
-                  <img
-                    src={vendorLogoUrl}
-                    alt={`${cafeteria?.name || 'Vendor'} logo`}
-                    onError={() => setFailedVendorLogoUrl(vendorLogoUrl)}
-                  />
-                ) : (
-                  <span aria-hidden="true">{vendorInitial}</span>
-                )}
-              </div>
+              <VendorLogo
+                name={cafeteria?.name || 'Vendor'}
+                source={cafeteria?.logo}
+                variant="menu"
+                imageAlt={`${cafeteria?.name || 'Vendor'} logo`}
+              />
               <div className="menu-hero__status-pill">
                 <img src={clockOutlineIcon} alt="" className="menu-hero__status-icon" aria-hidden="true" />
                 <span>30-45 mins</span>
@@ -797,7 +814,14 @@ const Menu: React.FC = () => {
         </aside>
 
         <section className="menu-panel">
-          {categories.length > 0 ? (
+          {menuIsLoading ? (
+            <LoadingSkeleton variant="menu-grid" label="Loading this vendor menu" />
+          ) : menuErrorMessage ? (
+            <div className="menu-empty-state" role="alert">
+              <h3>Unable to load this menu.</h3>
+              <p>{menuErrorMessage}</p>
+            </div>
+          ) : categories.length > 0 ? (
             <>
               <div className="menu-panel__controls">
                 <SearchField
@@ -863,7 +887,7 @@ const Menu: React.FC = () => {
                                   <img src={item.image} alt={item.name} className="menu-card__image" />
                                 ) : (
                                   <div className="menu-card__placeholder">
-                                    <i className="bi bi-image" aria-hidden="true"></i>
+                                    <AppIcon name="image" />
                                   </div>
                                 )}
 
@@ -947,7 +971,7 @@ const Menu: React.FC = () => {
             onCheckout={handleCheckout}
             onOpenVendorInstruction={handleOpenVendorInstruction}
             isMobileDialog
-            vendorName={cafeteria?.name || 'Double Portion (DP)'}
+            vendorName={displayedCartVendor?.name ?? 'Vendor'}
             onViewCart={handleViewCartSummary}
             onClose={() => setMobileCartIsOpen(false)}
           />
@@ -955,8 +979,9 @@ const Menu: React.FC = () => {
       )}
 
       {vendorInstructionModalIsOpen && (
-        <VendorInstructionModal
-          currentInstruction={serverCart?.notes ?? ''}
+        <InstructionModal
+          audience="vendor"
+          currentInstruction={serverCart?.vendor_notes ?? serverCart?.notes ?? ''}
           errorMessage={vendorInstructionError}
           isSaving={vendorInstructionIsSaving}
           savedNotes={savedCartNotes}

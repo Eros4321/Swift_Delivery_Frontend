@@ -18,6 +18,7 @@ import {
 import '../styles/CafeteriaList.scss';
 import Header from '../components/Header';
 import CafeteriaCard from '../components/CafeteriaCard';
+import LoadingSkeleton from '../components/LoadingState';
 
 import filterIcon from '../assets/filter.svg';
 import openNowIcon from '../assets/filter_clock.svg';
@@ -77,7 +78,7 @@ const CafeteriaList: React.FC = () => {
   const [selectedUniversity, setSelectedUniversity] = useState<UniversitySummary | null>(
     getSelectedUniversity,
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(() => Boolean(getSelectedUniversity()?.id));
   const [errorMessage, setErrorMessage] = useState('');
   const [favoriteVendorIds, setFavoriteVendorIds] = useState<Set<number>>(new Set());
   const [favoriteStatusIsLoading, setFavoriteStatusIsLoading] = useState(false);
@@ -346,10 +347,10 @@ const CafeteriaList: React.FC = () => {
             <p>Use the location selector in the header to choose from supported universities.</p>
           </div>
         ) : isLoading ? (
-          <div className="cafeteria-empty-state" role="status">
-            <h2>Loading vendors...</h2>
-            <p>Finding {vendorResultsLabel} at {selectedUniversity.name}.</p>
-          </div>
+          <LoadingSkeleton
+            variant="vendor-grid"
+            label={`Loading ${vendorResultsLabel} at ${selectedUniversity.name}`}
+          />
         ) : errorMessage ? (
           <div className="cafeteria-empty-state" role="alert">
             <h2>Unable to load vendors.</h2>

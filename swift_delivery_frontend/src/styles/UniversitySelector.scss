@@ -160,7 +160,7 @@
     @include type(t.$label-small);
   }
 
-  i {
+  .app-icon {
     flex-shrink: 0;
     color: c.$key-primary;
     font-size: 1rem;

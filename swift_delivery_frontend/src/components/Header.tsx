@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../styles/Header.scss';
 import logo from '../assets/logo2.svg';
 import heartIcon from '../assets/heart.svg';
@@ -9,7 +8,6 @@ import menuIcon from '../assets/MenuAlt4.svg';
 import profileAvatar from '../assets/avatar of thoughtful man holding hand near face.svg';
 import viewFavoritesIcon from '../assets/view_favorites.svg';
 import orderHistoryIcon from '../assets/order_history.svg';
-import reachSupportIcon from '../assets/reach_support.svg';
 import logoutIcon from '../assets/Logout.svg';
 import appleIcon from '../assets/apple.svg';
 import playstoreIcon from '../assets/playstore.svg';
@@ -26,6 +24,8 @@ import { formatNigerianPhoneNumber } from '../utils/phoneNumber';
 import SearchField from './SearchField';
 import UniversitySelector from './UniversitySelector';
 import HeaderCornerAccent from './HeaderCornerAccent';
+import { MobileLoadingSpinner } from './LoadingState';
+import AppIcon from './AppIcon';
 
 export type HeaderAccentTheme = 'browse-all' | 'cafeterias' | 'grillz' | 'pastries' | 'drinks';
 
@@ -162,6 +162,13 @@ const Header: React.FC<HeaderProps> = ({
   const handleProfileToggle = () => {
     setLocationSelectorIsOpen(false);
     setLogoutError('');
+
+    if (!customer) {
+      setProfileIsOpen(false);
+      navigate('/login');
+      return;
+    }
+
     setProfileIsOpen((isOpen) => !isOpen);
   };
 
@@ -175,12 +182,6 @@ const Header: React.FC<HeaderProps> = ({
     setLocationSelectorIsOpen(false);
     setProfileIsOpen(false);
     navigate('/order-history');
-  };
-
-  const handleSupportOpen = () => {
-    setLocationSelectorIsOpen(false);
-    setProfileIsOpen(false);
-    navigate('/support');
   };
 
   const handleLogout = async () => {
@@ -221,16 +222,18 @@ const Header: React.FC<HeaderProps> = ({
   const customerName = customer
     ? [customer.first_name.trim(), customer.last_name.trim()].filter(Boolean).join(' ')
     : '';
-  const profileName = customerName || 'Benjamin Odion-Owase';
+  const profileName = customerName || 'Name unavailable';
   const profilePhoneNumber = customer
     ? formatNigerianPhoneNumber(customer.phone_number)
-    : '+234 09030346457';
+    : 'Phone unavailable';
 
   return (
     <header
       className={headerClassName}
       style={mobileHeaderStyle}
     >
+      {logoutIsPending && <MobileLoadingSpinner label="Logging out" />}
+
       <span className="cafeteria-topbar__visuals" aria-hidden="true">
         <HeaderCornerAccent
           className="cafeteria-topbar__visual cafeteria-topbar__visual--left"
@@ -291,9 +294,9 @@ const Header: React.FC<HeaderProps> = ({
         <button
           type="button"
           className="cafeteria-topbar__profile-btn"
-          aria-label="Profile menu"
-          aria-expanded={profileIsOpen}
-          aria-controls="profile-panel"
+          aria-label={customer ? 'Profile menu' : 'Login'}
+          aria-expanded={customer ? profileIsOpen : undefined}
+          aria-controls={customer ? 'profile-panel' : undefined}
           onClick={handleProfileToggle}
         >
           <svg
@@ -317,8 +320,10 @@ const Header: React.FC<HeaderProps> = ({
               strokeLinejoin="round"
             />
           </svg>
-          <span>Profile</span>
-          <img src={menuIcon} alt="" className="cafeteria-topbar__icon" aria-hidden="true" />
+          <span>{customer ? 'Profile' : 'Login'}</span>
+          {customer && (
+            <img src={menuIcon} alt="" className="cafeteria-topbar__icon" aria-hidden="true" />
+          )}
         </button>
 
         {profileIsOpen && (
@@ -369,7 +374,7 @@ const Header: React.FC<HeaderProps> = ({
               >
                 <img src={viewFavoritesIcon} alt="" className="profile-panel__menu-icon" aria-hidden="true" />
                 <span>View Favorites</span>
-                <i className="bi bi-arrow-right" aria-hidden="true"></i>
+                <AppIcon name="arrow-right" />
               </button>
               <button
                 type="button"
@@ -378,16 +383,7 @@ const Header: React.FC<HeaderProps> = ({
               >
                 <img src={orderHistoryIcon} alt="" className="profile-panel__menu-icon" aria-hidden="true" />
                 <span>Order History</span>
-                <i className="bi bi-arrow-right" aria-hidden="true"></i>
-              </button>
-              <button
-                type="button"
-                className="profile-panel__menu-item"
-                onClick={handleSupportOpen}
-              >
-                <img src={reachSupportIcon} alt="" className="profile-panel__menu-icon" aria-hidden="true" />
-                <span>Reach Support</span>
-                <i className="bi bi-arrow-right" aria-hidden="true"></i>
+                <AppIcon name="arrow-right" />
               </button>
               <button
                 type="button"

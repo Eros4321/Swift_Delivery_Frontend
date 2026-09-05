@@ -11,15 +11,18 @@ import React, {
 import {
   addOrReplaceCustomerCartItem,
   clearCustomerCart,
+  CartNoteType,
   customerSessionUpdatedEvent,
   CustomerCart,
   CustomerCartItem,
   deleteCustomerCartItem,
+  fetchCafeteriaDetails,
   fetchCustomerCart,
   getApiErrorMessage,
   hasStoredAuthToken,
-  updateCustomerCartNotes,
+  updateCustomerCartInstruction,
   updateCustomerCartItem,
+  VendorListItem,
 } from '../services/api';
 
 export interface CartSyncItem {
@@ -27,8 +30,54 @@ export interface CartSyncItem {
   quantity: number;
 }
 
+export type CartVendor = Pick<VendorListItem, 'id' | 'name' | 'image' | 'logo'>;
+
+const getStoredCartVendor = (): CartVendor | null => {
+  const storedVendor = localStorage.getItem('cartVendor');
+  if (!storedVendor) return null;
+
+  try {
+    const parsedVendor = JSON.parse(storedVendor) as Partial<CartVendor>;
+    if (
+      !Number.isInteger(parsedVendor.id)
+      || Number(parsedVendor.id) <= 0
+      || typeof parsedVendor.name !== 'string'
+      || !parsedVendor.name.trim()
+    ) {
+      return null;
+    }
+
+    return {
+      id: Number(parsedVendor.id),
+      name: parsedVendor.name,
+      image: typeof parsedVendor.image === 'string' ? parsedVendor.image : null,
+      logo: typeof parsedVendor.logo === 'string' ? parsedVendor.logo : null,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const cartItemsBelongToVendor = (items: CustomerCartItem[], vendorId: number) => (
+  items.every(({ menu_item_detail: menuItem }) => (
+    Array.isArray(menuItem.vendors) && menuItem.vendors.includes(vendorId)
+  ))
+);
+
+const getCartVendorId = (items: CustomerCartItem[]): number | null | undefined => {
+  const vendorIdLists = items.map(({ menu_item_detail: menuItem }) => menuItem.vendors);
+  if (vendorIdLists.some((vendorIds) => !Array.isArray(vendorIds) || vendorIds.length === 0)) {
+    return undefined;
+  }
+
+  return vendorIdLists[0].find((vendorId) => (
+    vendorIdLists.slice(1).every((vendorIds) => vendorIds.includes(vendorId))
+  )) ?? null;
+};
+
 interface CartContextType {
   cart: CustomerCart | null;
+  cartVendor: CartVendor | null;
   cartItems: CustomerCartItem[];
   itemCount: number;
   totalAmount: number;
@@ -37,7 +86,7 @@ interface CartContextType {
   error: string | null;
   refreshCart: () => Promise<void>;
   synchronizeCart: (items: CartSyncItem[]) => Promise<void>;
-  updateNotes: (notes: string) => Promise<void>;
+  updateInstruction: (noteType: CartNoteType, instruction: string) => Promise<void>;
   clearCart: () => Promise<void>;
 }
 
@@ -45,10 +94,12 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [cart, setCart] = useState<CustomerCart | null>(null);
+  const [cartVendor, setCartVendor] = useState<CartVendor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const syncQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const cartVendorRequestIdRef = useRef(0);
 
   const refreshCart = useCallback(async () => {
     if (!hasStoredAuthToken()) {
@@ -99,6 +150,50 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     window.dispatchEvent(new Event('cart-updated'));
   }, [cart]);
 
+  useEffect(() => {
+    const requestId = ++cartVendorRequestIdRef.current;
+    if (isLoading) return;
+
+    const items = cart?.items ?? [];
+    if (items.length === 0) {
+      setCartVendor(null);
+      localStorage.removeItem('cartVendor');
+      return;
+    }
+
+    const storedVendor = getStoredCartVendor();
+    if (storedVendor && cartItemsBelongToVendor(items, storedVendor.id)) {
+      setCartVendor(storedVendor);
+      return;
+    }
+
+    const vendorId = getCartVendorId(items);
+    if (vendorId === undefined || vendorId === null) {
+      setCartVendor(null);
+      localStorage.removeItem('cartVendor');
+      return;
+    }
+
+    void fetchCafeteriaDetails(vendorId)
+      .then((vendor) => {
+        if (cartVendorRequestIdRef.current !== requestId) return;
+
+        const nextCartVendor: CartVendor = {
+          id: vendor.id,
+          name: vendor.name,
+          image: vendor.image,
+          logo: vendor.logo,
+        };
+        setCartVendor(nextCartVendor);
+        localStorage.setItem('cartVendor', JSON.stringify(nextCartVendor));
+      })
+      .catch(() => {
+        if (cartVendorRequestIdRef.current !== requestId) return;
+        setCartVendor(null);
+        localStorage.removeItem('cartVendor');
+      });
+  }, [cart, isLoading]);
+
   const synchronizeCart = useCallback((items: CartSyncItem[]) => {
     const desiredQuantities = new Map<number, number>();
     items.forEach(({ menuItemId, quantity }) => {
@@ -121,7 +216,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const currentCart = await fetchCustomerCart();
 
         if (desiredQuantities.size === 0) {
-          const emptyCart = currentCart.items.length > 0 || Boolean(currentCart.notes)
+          const cartHasInstructions = Boolean(
+            currentCart.vendor_notes
+              || currentCart.delivery_notes
+              || currentCart.notes,
+          );
+          const emptyCart = currentCart.items.length > 0 || cartHasInstructions
             ? await clearCustomerCart()
             : currentCart;
           setCart(emptyCart);
@@ -166,7 +266,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return operation;
   }, []);
 
-  const updateNotes = useCallback(async (notes: string) => {
+  const updateInstruction = useCallback(async (
+    noteType: CartNoteType,
+    instruction: string,
+  ) => {
     if (!hasStoredAuthToken()) {
       throw new Error('Log in to add an instruction to your cart.');
     }
@@ -174,7 +277,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsSyncing(true);
 
     try {
-      const updatedCart = await updateCustomerCartNotes(notes);
+      const updatedCart = await updateCustomerCartInstruction(noteType, instruction);
       setCart(updatedCart);
       setError(null);
     } catch (requestError: unknown) {
@@ -193,17 +296,18 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const value = useMemo<CartContextType>(() => ({
     cart,
+    cartVendor,
     cartItems: cart?.items ?? [],
     itemCount: cart?.item_count ?? 0,
-    totalAmount: Number(cart?.total_amount ?? 0),
+    totalAmount: Number(cart?.subtotal_amount ?? cart?.total_amount ?? 0),
     isLoading,
     isSyncing,
     error,
     refreshCart,
     synchronizeCart,
-    updateNotes,
+    updateInstruction,
     clearCart,
-  }), [cart, clearCart, error, isLoading, isSyncing, refreshCart, synchronizeCart, updateNotes]);
+  }), [cart, cartVendor, clearCart, error, isLoading, isSyncing, refreshCart, synchronizeCart, updateInstruction]);
 
   return (
     <CartContext.Provider value={value}>

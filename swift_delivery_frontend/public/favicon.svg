@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="swift-favicon-mark" x1="347" y1="54" x2="620" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B2F1C0" />
+      <stop offset="0.48" stop-color="#20E681" />
+      <stop offset="1" stop-color="#00A84F" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#000050" />
+  <path
+    d="M 393 34 L 474 25 L 529 21 L 535 15 L 428 15 L 427 13 L 431 12 L 578 1 L 595 7 L 611 22 L 619 40 L 620 64 L 614 81 L 608 90 L 597 100 L 578 108 L 557 108 L 539 103 L 532 103 L 513 98 L 486 94 L 486 92 L 529 93 L 526 89 L 432 83 L 432 81 L 441 80 L 519 77 L 517 72 L 387 73 L 387 71 L 403 69 L 510 60 L 515 59 L 514 54 L 430 60 L 426 59 L 361 65 L 348 65 L 347 63 L 512 41 L 514 42 L 558 35 L 512 33 L 387 37 L 388 35 Z"
+    fill="url(#swift-favicon-mark)"
+    fill-rule="evenodd"
+    transform="translate(58 178) scale(1.45) translate(-347 -1)"
+  />
+</svg>

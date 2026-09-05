@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import PhoneNumberField from '../components/PhoneNumberField';
 import PrimaryActionButton from '../components/PrimaryActionButton';
+import { MobileLoadingSpinner } from '../components/LoadingState';
 import {
   getApiErrorMessage,
   saveCustomerSession,
@@ -78,6 +79,8 @@ const Signup: React.FC = () => {
 
   return (
     <main className="signup-screen">
+      {isSubmitting && <MobileLoadingSpinner label="Creating your account" />}
+
       <div className="signup-screen__header">
         <Header />
       </div>

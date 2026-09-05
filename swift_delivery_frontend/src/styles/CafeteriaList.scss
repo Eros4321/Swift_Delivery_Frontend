@@ -303,7 +303,7 @@
   height: 100%;
   color: #7567a5;
 
-  i {
+  .app-icon {
     font-size: 2.4rem;
   }
 }
@@ -347,7 +347,7 @@
     display: block;
     flex-shrink: 0;
     position: relative;
-    top: -1.5px;
+    top: -1px;
   }
 }
 

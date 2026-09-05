@@ -1,18 +1,24 @@
 import React, { useEffect, useId, useState } from 'react';
 import type { SavedCartNote } from '../services/api';
+import CheckboxOption from './CheckboxOption';
+import ModalHeaderButton from './ModalHeaderButton';
 import PrimaryActionButton from './PrimaryActionButton';
+import { MobileLoadingSpinner } from './LoadingState';
 import backIcon from '../assets/back.svg';
 import closeIcon from '../assets/close.svg';
 import noteIcon from '../assets/note.svg';
 import trashIcon from '../assets/TrashOutline.svg';
 import '../styles/VendorInstructionModal.scss';
 
-export interface VendorInstructionSubmission {
+export interface InstructionSubmission {
   instruction: string;
   saveForLater: boolean;
 }
 
-interface VendorInstructionModalProps {
+type InstructionAudience = 'vendor' | 'agent';
+
+interface InstructionModalProps {
+  audience: InstructionAudience;
   currentInstruction: string;
   errorMessage?: string | null;
   isSaving?: boolean;
@@ -22,10 +28,28 @@ interface VendorInstructionModalProps {
   deletingSavedNoteId?: number | null;
   onDismiss: () => void;
   onDeleteSavedNote?: (savedNoteId: number) => void;
-  onSubmit: (submission: VendorInstructionSubmission) => void;
+  onSubmit: (submission: InstructionSubmission) => void;
 }
 
-const VendorInstructionModal: React.FC<VendorInstructionModalProps> = ({
+const modalCopy: Record<InstructionAudience, {
+  title: string;
+  instructionLabel: string;
+  placeholder: string;
+}> = {
+  vendor: {
+    title: 'Vendor Instruction',
+    instructionLabel: 'Instructions for vendor',
+    placeholder: 'Example: Please I want extra pepper',
+  },
+  agent: {
+    title: 'Agent Instruction',
+    instructionLabel: 'Instructions for agent',
+    placeholder: 'Example: Call me when you arrive',
+  },
+};
+
+const InstructionModal: React.FC<InstructionModalProps> = ({
+  audience,
   currentInstruction,
   errorMessage,
   isSaving = false,
@@ -46,6 +70,7 @@ const VendorInstructionModal: React.FC<VendorInstructionModalProps> = ({
   const normalizedInstruction = instruction.trim();
   const isRemovingInstruction = !normalizedInstruction && Boolean(currentInstruction);
   const canSubmit = Boolean(normalizedInstruction) || isRemovingInstruction;
+  const copy = modalCopy[audience];
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -70,6 +95,10 @@ const VendorInstructionModal: React.FC<VendorInstructionModalProps> = ({
         if (event.target === event.currentTarget && !isSaving) onDismiss();
       }}
     >
+      {(isSaving || savedNotesAreLoading || deletingSavedNoteId !== null) && (
+        <MobileLoadingSpinner label="Updating your instructions" />
+      )}
+
       <section
         className={`vendor-instruction-modal${showSavedNotes ? ' vendor-instruction-modal--saved' : ''}`}
         role="dialog"
@@ -79,25 +108,21 @@ const VendorInstructionModal: React.FC<VendorInstructionModalProps> = ({
       >
         <header className="vendor-instruction-modal__header">
           {showSavedNotes && (
-            <button
-              type="button"
-              className="vendor-instruction-modal__back"
+            <ModalHeaderButton
+              variant="back"
+              iconSrc={backIcon}
               onClick={() => setShowSavedNotes(false)}
-              aria-label="Back to vendor instruction"
-            >
-              <img src={backIcon} alt="" aria-hidden="true" />
-            </button>
+              aria-label={`Back to ${audience} instruction`}
+            />
           )}
-          <h2 id={titleId}>{showSavedNotes ? 'Saved notes' : 'Vendor Instruction'}</h2>
+          <h2 id={titleId}>{showSavedNotes ? 'Saved notes' : copy.title}</h2>
           {showSavedNotes && (
-            <button
-              type="button"
-              className="vendor-instruction-modal__close"
+            <ModalHeaderButton
+              variant="close"
+              iconSrc={closeIcon}
               onClick={onDismiss}
               aria-label="Close saved notes"
-            >
-              <img src={closeIcon} alt="" aria-hidden="true" />
-            </button>
+            />
           )}
         </header>
 
@@ -155,27 +180,25 @@ const VendorInstructionModal: React.FC<VendorInstructionModalProps> = ({
             }}
           >
             <label className="vendor-instruction-modal__label" htmlFor={instructionId}>
-              Instructions for vendor
+              {copy.instructionLabel}
             </label>
             <textarea
               id={instructionId}
               value={instruction}
               onChange={(event) => setInstruction(event.target.value)}
-              placeholder="Example: Please I want extra pepper"
+              placeholder={copy.placeholder}
               maxLength={500}
               rows={4}
               autoFocus
             />
 
-            <label className="vendor-instruction-modal__save-option">
-              <input
-                type="checkbox"
-                checked={saveForLater}
-                onChange={(event) => setSaveForLater(event.target.checked)}
-                disabled={isSaving}
-              />
-              <span>Save for later</span>
-            </label>
+            <CheckboxOption
+              containerClassName="vendor-instruction-modal__save-option"
+              label="Save for later"
+              checked={saveForLater}
+              onChange={(event) => setSaveForLater(event.target.checked)}
+              disabled={isSaving}
+            />
 
             {errorMessage && (
               <p id={errorId} className="vendor-instruction-modal__error" role="alert">
@@ -223,4 +246,4 @@ const VendorInstructionModal: React.FC<VendorInstructionModalProps> = ({
   );
 };
 
-export default VendorInstructionModal;
+export default InstructionModal;
