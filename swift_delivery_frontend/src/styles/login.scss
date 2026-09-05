@@ -20,8 +20,9 @@
 }
 
 .login-screen__header {
-  position: relative;
-  z-index: 2;
+  position: sticky;
+  top: 0;
+  z-index: 100;
   background: c.$surface;
 }
 

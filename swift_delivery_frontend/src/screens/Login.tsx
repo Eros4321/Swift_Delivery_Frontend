@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import PhoneNumberField from '../components/PhoneNumberField';
 import PrimaryActionButton from '../components/PrimaryActionButton';
+import { MobileLoadingSpinner } from '../components/LoadingState';
 import loginDeliveryIllustration from '../assets/login-delivery-illustration-subtle.png';
 import {
   getApiErrorMessage,
@@ -51,6 +52,8 @@ const Login: React.FC = () => {
 
   return (
     <main className="login-screen">
+      {isSubmitting && <MobileLoadingSpinner label="Logging in" />}
+
       <div className="login-screen__header">
         <Header />
       </div>

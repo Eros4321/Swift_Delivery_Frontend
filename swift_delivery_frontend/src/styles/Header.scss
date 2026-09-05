@@ -430,7 +430,7 @@
   text-align: left;
   @include type(t.$label-medium);
 
-  i:last-child {
+  .app-icon:last-child {
     font-size: 1.25rem;
   }
 

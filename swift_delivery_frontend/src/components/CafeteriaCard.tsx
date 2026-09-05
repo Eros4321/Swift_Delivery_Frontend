@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { VendorListItem } from '../services/api';
 import { resolveApiMediaUrl } from '../services/api';
 import FavoriteButton from './FavoriteButton';
+import AppIcon from './AppIcon';
 import starIcon from '../assets/Star.svg';
 import clockIcon from '../assets/ClockOutline.svg';
 import '../styles/CafeteriaList.scss';
@@ -39,7 +40,7 @@ const CafeteriaCard: React.FC<CafeteriaCardProps> = ({
             />
           ) : (
             <div className="cafeteria-card__image-placeholder">
-              <i className="bi bi-shop-window" aria-hidden="true" />
+              <AppIcon name="shop-window" />
             </div>
           )}
         </div>

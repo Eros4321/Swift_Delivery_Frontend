@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CafeteriaCard from '../components/CafeteriaCard';
+import LoadingSkeleton from '../components/LoadingState';
 import {
   AccountEmptyState,
   AccountPage,
@@ -73,7 +74,9 @@ const Favorites: React.FC = () => {
   return (
     <AccountPage title="Favourites">
       {isLoading ? (
-        <AccountPageFeedback message="Loading your favourites..." isLoading />
+        <div className="favorites-results">
+          <LoadingSkeleton variant="vendor-grid" label="Loading your favourites" />
+        </div>
       ) : favorites.length > 0 ? (
         <div className="favorites-results">
           {errorMessage && <p className="favorites-results__error" role="alert">{errorMessage}</p>}

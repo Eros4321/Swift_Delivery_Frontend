@@ -1,4 +1,5 @@
 @use 'colors' as c;
+@use 'elevation' as e;
 @use 'typography' as t;
 @use 'sass:map';
 
@@ -16,62 +17,216 @@
   padding-top: 2rem;
 }
 
+.order-history-results__error {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: c.$error-container;
+  color: c.$on-error-container;
+  @include type(t.$body-medium);
+}
+
 .order-history-list {
   display: grid;
-  gap: 1rem;
-  max-width: 56rem;
-  margin: 0 auto;
+  gap: 1.5rem;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .order-history-card {
-  padding: 1.25rem;
-  border: 1px solid c.$outline-variant;
-  border-radius: 0.75rem;
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
   background: c.$white;
 }
 
-.order-history-card__heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-
-  h2,
-  time,
-  strong {
-    display: block;
-  }
+.order-history-card__copy {
+  min-width: 0;
 
   h2 {
     margin: 0;
-    @include type(t.$title-large-emphasized);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    @include type(t.$title-medium-emphasized);
+  }
+}
+
+.order-history-card__metadata {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.65rem;
+  margin-top: 0.2rem;
+  color: c.$grey;
+  @include type(t.$label-medium);
+
+  > span[aria-hidden='true'] {
+    width: 1px;
+    height: 0.7rem;
+    background: c.$outline-variant;
+  }
+}
+
+.order-history-card__order-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.order-history-card__copy-id {
+  display: inline-grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0.125rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  cursor: pointer;
+
+  img {
+    display: block;
+    width: 1rem;
+    height: 1rem;
+    opacity: 1;
   }
 
-  time {
-    margin-top: 0.15rem;
-    color: c.$on-surface-variant;
-    @include type(t.$body-medium);
+  &:focus-visible {
+    outline: 2px solid c.$primary;
+    outline-offset: 1px;
   }
+}
 
-  strong {
+.order-history-copy-toast {
+  position: fixed;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 1200;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  background: c.$primary-container;
+  color: c.$on-primary-container;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: order-history-copy-toast-in 420ms ease-out both;
+  @include type(t.$label-large-emphasized);
+
+  img {
+    display: block;
+    width: 1rem;
+    height: 1rem;
     flex: 0 0 auto;
-    color: c.$key-primary;
-    @include type(t.$title-large-emphasized);
   }
 }
 
-.order-history-card__items {
-  margin: 1rem 0 0;
-  color: c.$on-surface;
-  @include type(t.$body-medium);
+@keyframes order-history-copy-toast-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, calc(100% + 2rem));
+  }
+
+  68% {
+    opacity: 1;
+    transform: translate(-50%, -0.35rem);
+  }
+
+  84% {
+    transform: translate(-50%, 0.12rem);
+  }
+
+  94% {
+    transform: translate(-50%, -0.04rem);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
-.order-history-card__count {
-  margin: 0.25rem 0 0;
-  color: c.$on-surface-variant;
-  @include type(t.$label-large);
+.order-history-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  button {
+    display: inline-flex;
+    min-height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1rem;
+    border: 0;
+    border-radius: 999px;
+    white-space: nowrap;
+    @include type(t.$label-large-emphasized);
+
+    &:focus-visible {
+      outline: 2px solid c.$primary;
+      outline-offset: 0.2rem;
+    }
+  }
+}
+
+.order-history-card__view {
+  background: c.$surface-container;
+  color: c.$primary;
+
+  &:disabled {
+    cursor: default;
+    opacity: 1;
+  }
+}
+
+.order-history-card__repeat {
+  background: c.$key-primary;
+  color: c.$white;
+  cursor: pointer;
+  transition: background-color 160ms ease, transform 160ms ease;
+
+  &:hover:not(:disabled) {
+    background: c.$primary;
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.55;
+  }
+
+  img {
+    display: block;
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+  }
+}
+
+.order-history-card__actions .order-history-card__details-arrow {
+  width: 2.5rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0.75rem;
+  background: transparent;
+  cursor: default;
+  opacity: 1;
+
+  img {
+    display: block;
+  }
 }
 
 @media (max-width: 680px) {
@@ -80,10 +235,64 @@
   }
 
   .order-history-card {
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+    gap: 0.75rem;
     padding: 1rem;
   }
 
-  .order-history-card__heading {
-    gap: 0.75rem;
+  .order-history-card__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    padding-top: 0.25rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .order-history-card {
+    position: relative;
+    padding-right: 4rem;
+  }
+
+  .order-history-card__metadata {
+    > span[aria-hidden='true'] {
+      display: none;
+    }
+  }
+
+  .order-history-card__order-id {
+    flex: 0 0 100%;
+  }
+
+  .order-history-card__amount,
+  .order-history-card__date {
+    white-space: nowrap;
+  }
+
+  .order-history-card__actions {
+    display: flex;
+    justify-content: flex-start;
+
+    button {
+      width: auto;
+      padding-right: 0.75rem;
+      padding-left: 0.75rem;
+    }
+
+    .order-history-card__details-arrow {
+      position: absolute;
+      top: 50%;
+      right: 0.75rem;
+      width: 2.5rem;
+      padding: 0.75rem;
+      transform: translateY(-50%);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .order-history-card__repeat,
+  .order-history-copy-toast {
+    transition: none;
+    animation: none;
   }
 }
