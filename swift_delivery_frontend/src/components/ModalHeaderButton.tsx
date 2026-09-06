@@ -27,8 +27,8 @@ const ModalHeaderButton: React.FC<ModalHeaderButtonProps> = ({
       <span
         className="modal-header-button__icon"
         style={{
-          WebkitMaskImage: `url(${iconSrc})`,
-          maskImage: `url(${iconSrc})`,
+          WebkitMaskImage: `url("${iconSrc}")`,
+          maskImage: `url("${iconSrc}")`,
         }}
         aria-hidden="true"
       />

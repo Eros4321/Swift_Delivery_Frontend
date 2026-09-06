@@ -465,8 +465,8 @@ const CheckoutAddressModal: React.FC<CheckoutAddressModalProps> = ({
                 <span
                   className="checkout-address-modal__current-location-icon"
                   style={{
-                    WebkitMaskImage: `url(${deliveryAddressIcon})`,
-                    maskImage: `url(${deliveryAddressIcon})`,
+                    WebkitMaskImage: `url("${deliveryAddressIcon}")`,
+                    maskImage: `url("${deliveryAddressIcon}")`,
                   }}
                   aria-hidden="true"
                 />
@@ -485,8 +485,8 @@ const CheckoutAddressModal: React.FC<CheckoutAddressModalProps> = ({
                 <span
                   className="checkout-address-modal__current-location-icon"
                   style={{
-                    WebkitMaskImage: `url(${selectAddressIcon})`,
-                    maskImage: `url(${selectAddressIcon})`,
+                    WebkitMaskImage: `url("${selectAddressIcon}")`,
+                    maskImage: `url("${selectAddressIcon}")`,
                   }}
                   aria-hidden="true"
                 />
@@ -649,8 +649,8 @@ const CheckoutAddressModal: React.FC<CheckoutAddressModalProps> = ({
                     <span
                       className="checkout-address-modal__map-selection-icon"
                       style={{
-                        WebkitMaskImage: `url(${deliveryAddressIcon})`,
-                        maskImage: `url(${deliveryAddressIcon})`,
+                        WebkitMaskImage: `url("${deliveryAddressIcon}")`,
+                        maskImage: `url("${deliveryAddressIcon}")`,
                       }}
                       aria-hidden="true"
                     />
