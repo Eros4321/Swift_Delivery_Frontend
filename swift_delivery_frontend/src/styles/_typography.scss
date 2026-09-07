@@ -5,6 +5,13 @@ $font-weight-regular: 400;
 $font-weight-medium: 500;
 $font-weight-bold: 700;
 
+// Keep editable text large enough to avoid iOS focus zoom, including in landscape.
+@mixin mobile-input-size {
+  @media (max-width: 680px), (hover: none) and (pointer: coarse) {
+    font-size: max(16px, 1rem);
+  }
+}
+
 // Display
 $display-large: (
   font-family: $font-family-brand,

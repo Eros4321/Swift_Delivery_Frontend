@@ -108,6 +108,7 @@
     color: c.$on-surface;
     appearance: none;
     @include type(t.$body-medium);
+    @include t.mobile-input-size;
 
     &::placeholder {
       color: c.$grey;
