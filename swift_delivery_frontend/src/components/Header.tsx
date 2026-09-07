@@ -8,6 +8,7 @@ import menuIcon from '../assets/MenuAlt4.svg';
 import profileAvatar from '../assets/avatar of thoughtful man holding hand near face.svg';
 import viewFavoritesIcon from '../assets/view_favorites.svg';
 import orderHistoryIcon from '../assets/order_history.svg';
+import reachSupportIcon from '../assets/reach_support.svg';
 import logoutIcon from '../assets/Logout.svg';
 import appleIcon from '../assets/apple.svg';
 import playstoreIcon from '../assets/playstore.svg';
@@ -383,6 +384,15 @@ const Header: React.FC<HeaderProps> = ({
               >
                 <img src={orderHistoryIcon} alt="" className="profile-panel__menu-icon" aria-hidden="true" />
                 <span>Order History</span>
+                <AppIcon name="arrow-right" />
+              </button>
+              <button
+                type="button"
+                className="profile-panel__menu-item"
+                aria-disabled="true"
+              >
+                <img src={reachSupportIcon} alt="" className="profile-panel__menu-icon" aria-hidden="true" />
+                <span>Reach Support</span>
                 <AppIcon name="arrow-right" />
               </button>
               <button
