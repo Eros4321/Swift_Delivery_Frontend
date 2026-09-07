@@ -81,6 +81,7 @@
   background: transparent;
   color: c.$on-surface;
   @include type(t.$label-medium);
+  @include t.mobile-input-size;
 
   &::placeholder {
     color: c.$grey;

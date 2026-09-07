@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import '../styles/LoadingState.scss';
 
 export type LoadingSkeletonVariant =
@@ -40,11 +41,16 @@ const SkeletonBlock: React.FC<{ className?: string }> = ({ className = '' }) => 
   />
 );
 
-export const MobileLoadingSpinner: React.FC<LoadingLabelProps> = ({ label }) => (
-  <div className="mobile-loading-spinner" role="status" aria-label={label}>
-    <span className="mobile-loading-spinner__ring" aria-hidden="true" />
-  </div>
-);
+export const MobileLoadingSpinner: React.FC<LoadingLabelProps> = ({ label }) => {
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className="mobile-loading-spinner" role="status" aria-label={label}>
+      <span className="mobile-loading-spinner__ring" aria-hidden="true" />
+    </div>,
+    document.body,
+  );
+};
 
 export const AppPreloader: React.FC<LoadingLabelProps> = ({ label }) => (
   <div className="app-preloader" role="status" aria-live="polite">
