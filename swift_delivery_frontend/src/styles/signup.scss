@@ -80,6 +80,7 @@
     color: c.$on-surface;
     transition: border-color 160ms ease;
     @include type(t.$label-medium);
+    font-weight: t.$font-weight-regular;
     @include t.mobile-input-size;
 
     &:focus {
