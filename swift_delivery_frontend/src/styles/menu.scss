@@ -497,8 +497,9 @@ select {
   .menu-panel__controls {
     // Keep the sticky surface opaque across the screen and top safe area.
     margin-right: -1.2rem;
+    margin-bottom: 1rem;
     margin-left: -1.2rem;
-    padding: env(safe-area-inset-top, 0px) 1.2rem 1rem;
+    padding: env(safe-area-inset-top, 0px) 1.2rem 0;
     background: c.$surface;
   }
 
