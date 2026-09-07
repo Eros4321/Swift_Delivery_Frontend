@@ -112,6 +112,7 @@
 
     &::placeholder {
       color: c.$grey;
+      @include type(t.$body-medium);
     }
 
     &::-webkit-search-cancel-button {

@@ -40,5 +40,6 @@
 
   &::placeholder {
     color: c.$on-surface-variant;
+    @include type(t.$body-small);
   }
 }
