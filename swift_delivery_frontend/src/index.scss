@@ -1,6 +1,9 @@
+@use './styles/colors' as c;
+
 html {
   min-width: 320px;
   min-height: 100%;
+  background-color: c.$surface;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -15,7 +18,7 @@ body {
   min-height: 100vh;
   margin: 0;
   padding: 0;
-  background-color: white;
+  background-color: c.$surface;
   font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
   font-size: 1rem;
   font-weight: 400;
