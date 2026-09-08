@@ -1,0 +1,207 @@
+@use 'colors' as c;
+@use 'typography' as t;
+@use 'sass:map';
+
+@mixin type($style) {
+  font-family: map.get($style, font-family);
+  font-weight: map.get($style, font-weight);
+  font-size: map.get($style, font-size);
+  line-height: map.get($style, line-height);
+  letter-spacing: map.get($style, letter-spacing);
+}
+
+.account-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: c.$surface;
+  color: c.$black;
+}
+
+.account-page__content {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-width: 1360px;
+  min-height: calc(100dvh - 5rem);
+  margin: 0 auto;
+  padding: 2.25rem 2rem 2rem;
+}
+
+.account-page__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.65rem;
+  padding: 0;
+  border: 0;
+  background: c.$transparent;
+  color: c.$primary;
+  cursor: pointer;
+  @include type(t.$label-large);
+
+  img {
+    width: 1rem;
+    height: 1rem;
+    transform: rotate(180deg);
+  }
+
+  &:focus-visible {
+    border-radius: 0.25rem;
+    outline: 2px solid c.$primary;
+    outline-offset: 0.25rem;
+  }
+}
+
+.account-page__title-row {
+  border-bottom: 1px solid c.$outline-variant;
+
+  h1 {
+    width: max-content;
+    margin: 0 0 -1px;
+    padding: 0 0 0.5rem;
+    border-bottom: 2px solid c.$black;
+    @include type(t.$headline-large-emphasized);
+  }
+}
+
+.account-empty-state {
+  align-self: start;
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 28rem;
+  padding-top: clamp(4rem, 12vh, 7rem);
+  text-align: center;
+
+  h2 {
+    margin: 0.25rem 0 0.25rem;
+    @include type(t.$title-large-emphasized);
+  }
+
+  p {
+    margin: 0 0 0.8rem;
+    color: c.$on-surface-variant;
+    @include type(t.$body-medium);
+  }
+}
+
+.account-empty-state__illustration {
+  display: block;
+  width: clamp(8rem, 14vw, 12rem);
+  height: clamp(8rem, 14vw, 12rem);
+  object-fit: contain;
+}
+
+.account-empty-state__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.25rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  background: c.$primary;
+  color: c.$white;
+  text-decoration: none;
+  transition: background-color 160ms ease, transform 160ms ease;
+  @include type(t.$label-medium-emphasized);
+
+  img {
+    width: 1rem;
+    height: 1rem;
+    filter: brightness(0) invert(1);
+  }
+
+  &:hover {
+    background: c.$key-primary;
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid c.$primary;
+    outline-offset: 0.2rem;
+  }
+}
+
+.account-page-feedback {
+  align-self: start;
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 30rem;
+  padding: clamp(5rem, 15vh, 8rem) 1rem 0;
+  text-align: center;
+
+  h2,
+  p {
+    margin: 0;
+  }
+
+  h2 {
+    margin-bottom: 0.5rem;
+    @include type(t.$title-large-emphasized);
+  }
+
+  p {
+    color: c.$on-surface-variant;
+    @include type(t.$body-medium);
+  }
+
+  button {
+    margin-top: 1rem;
+    padding: 0.55rem 1rem;
+    border: 0;
+    border-radius: 999px;
+    background: c.$primary;
+    color: c.$white;
+    cursor: pointer;
+    @include type(t.$label-large);
+  }
+}
+
+.account-page-feedback__spinner {
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.75rem;
+  border: 3px solid c.$primary-container;
+  border-top-color: c.$primary;
+  border-radius: 50%;
+  animation: account-page-spin 700ms linear infinite;
+}
+
+@keyframes account-page-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 680px) {
+  .account-page__content {
+    min-height: calc(100dvh - 7rem);
+    padding: 1.25rem 1rem 1.5rem;
+  }
+
+  .account-empty-state {
+    width: 100%;
+    padding-top: clamp(3.5rem, 12vh, 5.5rem);
+  }
+
+  .account-empty-state__illustration {
+    width: 8.5rem;
+    height: 8.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-empty-state__action {
+    transition: none;
+  }
+
+  .account-page-feedback__spinner {
+    animation: none;
+  }
+}

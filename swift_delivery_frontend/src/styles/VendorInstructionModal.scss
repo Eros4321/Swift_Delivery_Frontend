@@ -1,0 +1,256 @@
+@use 'colors' as c;
+@use 'typography' as t;
+@use 'elevation' as e;
+@use 'sass:map';
+
+@mixin type($style) {
+  font-family: map.get($style, font-family);
+  font-weight: map.get($style, font-weight);
+  font-size: map.get($style, font-size);
+  line-height: map.get($style, line-height);
+  letter-spacing: map.get($style, letter-spacing);
+}
+
+.vendor-instruction-modal__backdrop {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(c.$black, 0.28);
+  animation: vendor-instruction-backdrop-in 160ms ease-out;
+}
+
+.vendor-instruction-modal {
+  width: min(28.5rem, 100%);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  border-radius: 1.5rem;
+  background: c.$white;
+  color: c.$on-surface;
+  box-shadow: e.$light-1;
+  animation: vendor-instruction-modal-in 200ms ease-out;
+}
+
+.vendor-instruction-modal--saved {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: min(24rem, calc(100dvh - 2rem));
+  overflow: visible;
+}
+
+.vendor-instruction-modal__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid c.$primary-container;
+
+  h2 {
+    flex: 1;
+    margin: 0;
+    @include type(t.$headline-small-emphasized);
+  }
+}
+
+.vendor-instruction-modal__form {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 2rem 0.75rem;
+
+  textarea {
+    width: 100%;
+    min-height: 5.5rem;
+    margin-top: 0.5rem;
+    resize: vertical;
+    padding: 0.75rem;
+    border: 1px solid c.$transparent;
+    border-radius: 0.25rem;
+    outline: 0;
+    background: c.$surface-container;
+    color: c.$on-surface;
+    @include type(t.$label-medium);
+    font-weight: t.$font-weight-regular;
+    @include t.mobile-input-size;
+
+    &::placeholder {
+      color: c.$grey;
+    }
+  }
+}
+
+.vendor-instruction-modal__label {
+  text-transform: uppercase;
+  @include type(t.$title-small-emphasized);
+}
+
+.vendor-instruction-modal__save-option {
+  margin: 0.75rem 0 0.875rem;
+}
+
+.vendor-instruction-modal__error {
+  margin: -0.25rem 0 0.75rem;
+  color: c.$error;
+  @include type(t.$body-small);
+}
+
+.vendor-instruction-modal__submit {
+  min-height: 2.75rem;
+}
+
+.vendor-instruction-modal__view-saved {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 0.4rem;
+  margin: 1rem 0 0.25rem;
+  padding: 0.25rem;
+  border: 0;
+  background: c.$transparent;
+  color: c.$primary;
+  cursor: pointer;
+  @include type(t.$label-medium-emphasized);
+
+  &:focus-visible {
+    outline: 2px solid c.$primary;
+    outline-offset: 2px;
+  }
+}
+
+.vendor-instruction-modal__saved-status,
+.vendor-instruction-modal__saved-error {
+  margin: 0.75rem 0 0;
+  text-align: center;
+  @include type(t.$body-small);
+}
+
+.vendor-instruction-modal__saved-status {
+  color: c.$on-surface-variant;
+}
+
+.vendor-instruction-modal__saved-error {
+  color: c.$error;
+}
+
+.vendor-instruction-modal__saved-notes {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 2rem 1.5rem;
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid c.$primary-container;
+  }
+}
+
+.vendor-instruction-modal__saved-note {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border: 0;
+  background: c.$transparent;
+  color: c.$on-surface;
+  text-align: left;
+  cursor: pointer;
+  @include type(t.$body-medium-emphasized);
+
+  > img {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: 0 0 auto;
+  }
+
+  span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  &:focus-visible {
+    outline: 2px solid c.$primary;
+    outline-offset: -2px;
+  }
+}
+
+.vendor-instruction-modal__delete-note {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  margin-left: 0.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 218, 214, 0.25);
+  cursor: pointer;
+
+  img {
+    display: block;
+  }
+
+  &:focus-visible {
+    outline: 2px solid c.$error;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.vendor-instruction-modal__saved-empty {
+  margin: 2.5rem 0;
+  color: c.$on-surface-variant;
+  text-align: center;
+  @include type(t.$body-medium);
+}
+
+@keyframes vendor-instruction-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes vendor-instruction-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.98);
+  }
+}
+
+@media (max-width: 520px) {
+  .vendor-instruction-modal__header {
+    padding: 1.125rem 1.25rem;
+  }
+
+  .vendor-instruction-modal__form {
+    padding-right: 1.25rem;
+    padding-left: 1.25rem;
+  }
+
+  .vendor-instruction-modal__saved-notes {
+    padding-right: 1.25rem;
+    padding-left: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vendor-instruction-modal__backdrop,
+  .vendor-instruction-modal {
+    animation: none;
+  }
+}

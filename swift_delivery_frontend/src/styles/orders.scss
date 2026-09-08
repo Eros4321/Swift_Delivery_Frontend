@@ -125,25 +125,6 @@
   text-align: left;
 }
 
-.cart-vendor-summary__logo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 3.25rem;
-  height: 3.25rem;
-  overflow: hidden;
-  border: 1px solid c.$black;
-  border-radius: 50%;
-  background: c.$white;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-}
-
 .cart-vendor-summary__copy {
   display: flex;
   flex-direction: column;
@@ -235,11 +216,6 @@
 
   .cart-dialog--mobile-summary .cart-vendor-group:not(:last-child) {
     border-bottom: 1px solid c.$outline-variant;
-  }
-
-  .cart-dialog--mobile-summary .cart-vendor-summary__logo {
-    width: 3.125rem;
-    height: 3.125rem;
   }
 
   .cart-dialog--mobile-summary .cart-vendor-summary__actions {

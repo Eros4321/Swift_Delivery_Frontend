@@ -1,12 +1,28 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { fetchCafeterias } from '../services/api.ts';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  addFavoriteVendor,
+  customerSessionUpdatedEvent,
+  fetchFavoriteVendors,
+  fetchVendors,
+  getApiErrorMessage,
+  getStoredCustomer,
+  getStoredSelectedUniversity,
+  hasStoredAuthToken,
+  removeFavoriteVendor,
+  universitySelectionUpdatedEvent,
+  type UniversitySummary,
+  type VendorListItem,
+  type VendorType,
+} from '../services/api.ts';
 import '../styles/CafeteriaList.scss';
 import Header from '../components/Header';
+import CafeteriaCard from '../components/CafeteriaCard';
+import LoadingSkeleton from '../components/LoadingState';
 
 import filterIcon from '../assets/filter.svg';
-import starIcon from '../assets/Star.svg';
-import clockIcon from '../assets/ClockOutline.svg';
+import openNowIcon from '../assets/filter_clock.svg';
+import ratingIcon from '../assets/filter_star.svg';
 
 // Category icons
 import iconBrowseAll from '../assets/noto_shopping-bags.svg';
@@ -15,65 +31,236 @@ import iconGrillz from '../assets/streamline-ultimate-color_barbecue-grill.svg';
 import iconPastries from '../assets/noto_cupcake.svg';
 import iconDrinks from '../assets/noto-v1_wine-glass.svg';
 
-interface Cafeteria {
-  id: number;
-  name: string;
-  image: string | null;
-}
-
 interface CategoryCard {
   label: string;
   icon: string;
   key: 'browse-all' | 'cafeterias' | 'grillz' | 'pastries' | 'drinks';
+  vendorType?: VendorType;
 }
 
 type CategoryKey = CategoryCard['key'];
 
 const categoryCards: CategoryCard[] = [
   { label: 'Browse All', icon: iconBrowseAll, key: 'browse-all' },
-  { label: 'Cafeterias', icon: iconCafeterias, key: 'cafeterias' },
-  { label: 'Grillz', icon: iconGrillz, key: 'grillz' },
-  { label: 'Pastries', icon: iconPastries, key: 'pastries' },
-  { label: 'Drinks', icon: iconDrinks, key: 'drinks' },
+  { label: 'Cafeterias', icon: iconCafeterias, key: 'cafeterias', vendorType: 'cafeteria' },
+  { label: 'Grillz', icon: iconGrillz, key: 'grillz', vendorType: 'grills' },
+  { label: 'Pastries', icon: iconPastries, key: 'pastries', vendorType: 'pastries' },
+  { label: 'Drinks', icon: iconDrinks, key: 'drinks', vendorType: 'drinks' },
 ];
 
+const getSelectedUniversity = () =>
+  getStoredCustomer()?.preferred_university ?? getStoredSelectedUniversity();
+
+const isVendorOpenNow = (closingTime: string | null) => {
+  if (!closingTime) return false;
+
+  const [hourText, minuteText] = closingTime.split(':');
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) return false;
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const closingMinutes = hour * 60 + minute;
+
+  // Closing times shortly after midnight belong to the current service day.
+  if (closingMinutes <= 4 * 60 && currentMinutes > 4 * 60) return true;
+
+  return currentMinutes < closingMinutes;
+};
+
 const CafeteriaList: React.FC = () => {
-  const [cafeterias, setCafeterias] = useState<Cafeteria[]>([]);
+  const navigate = useNavigate();
+  const [vendors, setVendors] = useState<VendorListItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredCafeterias, setFilteredCafeterias] = useState<Cafeteria[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey>('browse-all');
+  const [selectedUniversity, setSelectedUniversity] = useState<UniversitySummary | null>(
+    getSelectedUniversity,
+  );
+  const [isLoading, setIsLoading] = useState(() => Boolean(getSelectedUniversity()?.id));
+  const [errorMessage, setErrorMessage] = useState('');
+  const [favoriteVendorIds, setFavoriteVendorIds] = useState<Set<number>>(new Set());
+  const [favoriteStatusIsLoading, setFavoriteStatusIsLoading] = useState(false);
+  const [favoriteMutationVendorId, setFavoriteMutationVendorId] = useState<number | null>(null);
+  const [favoriteErrorMessage, setFavoriteErrorMessage] = useState('');
+  const [favoriteSessionVersion, setFavoriteSessionVersion] = useState(0);
+  const [openNowOnly, setOpenNowOnly] = useState(false);
+  const [sortByRating, setSortByRating] = useState(false);
+  const [filterOptionsAreVisible, setFilterOptionsAreVisible] = useState(true);
+  const activeFilterCount = Number(openNowOnly) + Number(sortByRating);
   const selectedCategoryCard = categoryCards.find((category) => category.key === selectedCategory);
+  const selectedVendorType = selectedCategoryCard?.vendorType;
+  const selectedUniversityId = selectedUniversity?.id;
+  const vendorResultsLabel = selectedVendorType
+    ? selectedCategoryCard?.label.toLowerCase() ?? 'vendors'
+    : 'vendors';
 
   useEffect(() => {
-    const getCafeterias = async () => {
+    const syncSelectedUniversity = () => setSelectedUniversity(getSelectedUniversity());
+
+    window.addEventListener(customerSessionUpdatedEvent, syncSelectedUniversity);
+    window.addEventListener(universitySelectionUpdatedEvent, syncSelectedUniversity);
+    window.addEventListener('storage', syncSelectedUniversity);
+    return () => {
+      window.removeEventListener(customerSessionUpdatedEvent, syncSelectedUniversity);
+      window.removeEventListener(universitySelectionUpdatedEvent, syncSelectedUniversity);
+      window.removeEventListener('storage', syncSelectedUniversity);
+    };
+  }, []);
+
+  useEffect(() => {
+    const syncFavoriteSession = () => {
+      setFavoriteSessionVersion((version) => version + 1);
+    };
+
+    window.addEventListener(customerSessionUpdatedEvent, syncFavoriteSession);
+    window.addEventListener('storage', syncFavoriteSession);
+    return () => {
+      window.removeEventListener(customerSessionUpdatedEvent, syncFavoriteSession);
+      window.removeEventListener('storage', syncFavoriteSession);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasStoredAuthToken()) {
+      setFavoriteVendorIds(new Set());
+      setFavoriteStatusIsLoading(false);
+      setFavoriteErrorMessage('');
+      return;
+    }
+
+    const controller = new AbortController();
+    setFavoriteStatusIsLoading(true);
+    setFavoriteErrorMessage('');
+
+    void fetchFavoriteVendors(controller.signal)
+      .then((favorites) => {
+        setFavoriteVendorIds(new Set(favorites.map((favorite) => favorite.vendor)));
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          setFavoriteErrorMessage(
+            getApiErrorMessage(error, 'Unable to load your favourite vendors.'),
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setFavoriteStatusIsLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [favoriteSessionVersion]);
+
+  useEffect(() => {
+    if (!selectedUniversityId) {
+      setVendors([]);
+      setErrorMessage('');
+      setIsLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const getVendors = async () => {
+      setIsLoading(true);
+      setErrorMessage('');
+
       try {
-        const data = await fetchCafeterias();
-        setCafeterias(data);
-        setFilteredCafeterias(data);
-      } catch (error) {
-        console.error('Error fetching cafeterias:', error);
+        const data = await fetchVendors(
+          {
+            universityId: selectedUniversityId,
+            vendorType: selectedVendorType,
+          },
+          controller.signal,
+        );
+        setVendors(data);
+      } catch (error: unknown) {
+        if (controller.signal.aborted) return;
+        setVendors([]);
+        setErrorMessage(getApiErrorMessage(error, 'Unable to load vendors.'));
+      } finally {
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     };
 
-    getCafeterias();
-  }, []);
+    void getVendors();
+    return () => controller.abort();
+  }, [selectedUniversityId, selectedVendorType]);
 
   const handleCategoryClick = (key: CategoryKey) => {
     setSelectedCategory(key);
   };
 
-  useEffect(() => {
+  const handleFavoriteToggle = async (vendor: VendorListItem) => {
+    if (favoriteMutationVendorId !== null || favoriteStatusIsLoading) return;
+
+    if (!hasStoredAuthToken()) {
+      navigate('/login');
+      return;
+    }
+
+    const isCurrentlyFavorite = favoriteVendorIds.has(vendor.id);
+    setFavoriteMutationVendorId(vendor.id);
+    setFavoriteErrorMessage('');
+
+    try {
+      if (isCurrentlyFavorite) {
+        await removeFavoriteVendor(vendor.id);
+      } else {
+        await addFavoriteVendor(vendor.id);
+      }
+
+      setFavoriteVendorIds((currentIds) => {
+        const nextIds = new Set(currentIds);
+
+        if (isCurrentlyFavorite) {
+          nextIds.delete(vendor.id);
+        } else {
+          nextIds.add(vendor.id);
+        }
+
+        return nextIds;
+      });
+    } catch (error: unknown) {
+      setFavoriteErrorMessage(
+        getApiErrorMessage(
+          error,
+          isCurrentlyFavorite
+            ? `Unable to remove ${vendor.name} from favourites.`
+            : `Unable to add ${vendor.name} to favourites.`,
+        ),
+      );
+    } finally {
+      setFavoriteMutationVendorId(null);
+    }
+  };
+
+  const filteredVendors = useMemo(() => {
     const lowerCaseQuery = searchQuery.trim().toLowerCase();
-    const filtered = cafeterias.filter((cafeteria) =>
-      cafeteria.name.toLowerCase().includes(lowerCaseQuery)
+    const matchingVendors = vendors.filter((vendor) => (
+      vendor.name.toLowerCase().includes(lowerCaseQuery)
+      && (!openNowOnly || isVendorOpenNow(vendor.closing_time))
+    ));
+
+    if (!sortByRating) return matchingVendors;
+
+    return [...matchingVendors].sort(
+      (firstVendor, secondVendor) =>
+        Number(secondVendor.average_rating ?? 0) - Number(firstVendor.average_rating ?? 0),
     );
-    setFilteredCafeterias(filtered);
-  }, [cafeterias, searchQuery]);
+  }, [openNowOnly, searchQuery, sortByRating, vendors]);
 
   return (
     <main className="cafeteria-screen">
       <div className="cafeteria-sticky">
-        <Header searchQuery={searchQuery} onSearch={setSearchQuery} />
+        <Header
+          searchQuery={searchQuery}
+          onSearch={setSearchQuery}
+          accentTheme={selectedCategory}
+        />
       </div>
 
       <section className="cafeteria-content">
@@ -96,55 +283,109 @@ const CafeteriaList: React.FC = () => {
           ))}
         </div>
 
-        <button type="button" className="cafeteria-filter" aria-label="Filter cafeterias">
-          <span>Filter</span>
-          <img src={filterIcon} alt="" className="cafeteria-filter__icon" aria-hidden="true" />
-        </button>
+        <div className="cafeteria-filters" role="group" aria-label="Vendor filters">
+          <button
+            type="button"
+            className="cafeteria-filter cafeteria-filter--all"
+            onClick={() => setFilterOptionsAreVisible((areVisible) => !areVisible)}
+            aria-expanded={filterOptionsAreVisible}
+            aria-controls="cafeteria-filter-options"
+            aria-label={`All Filters${activeFilterCount > 0 ? `, ${activeFilterCount} active` : ''}`}
+          >
+            <img
+              src={filterIcon}
+              alt=""
+              className="cafeteria-filter__icon cafeteria-filter__icon--all"
+              aria-hidden="true"
+            />
+            <span>All Filters</span>
+            {!filterOptionsAreVisible && activeFilterCount > 0 && (
+              <span className="cafeteria-filter__badge" aria-hidden="true">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
 
-        {selectedCategory !== 'browse-all' ? (
-          <div className="cafeteria-coming-soon-state">
-            <img src={selectedCategoryCard?.icon} alt="" aria-hidden="true" />
-            <h2>{selectedCategoryCard?.label} is coming soon</h2>
-            <p>We are getting this category ready. Browse all vendors while we finish it.</p>
+          <div
+            id="cafeteria-filter-options"
+            className={`cafeteria-filter-options${filterOptionsAreVisible ? ' is-visible' : ' is-hidden'}`}
+            aria-hidden={!filterOptionsAreVisible}
+          >
+            <button
+              type="button"
+              className={`cafeteria-filter cafeteria-filter--option${openNowOnly ? ' is-active' : ''}`}
+              onClick={() => setOpenNowOnly((isSelected) => !isSelected)}
+              aria-pressed={openNowOnly}
+              tabIndex={filterOptionsAreVisible ? 0 : -1}
+            >
+              <img src={openNowIcon} alt="" className="cafeteria-filter__icon" aria-hidden="true" />
+              <span>Open now</span>
+            </button>
+
+            <button
+              type="button"
+              className={`cafeteria-filter cafeteria-filter--option${sortByRating ? ' is-active' : ''}`}
+              onClick={() => setSortByRating((isSelected) => !isSelected)}
+              aria-pressed={sortByRating}
+              tabIndex={filterOptionsAreVisible ? 0 : -1}
+            >
+              <img src={ratingIcon} alt="" className="cafeteria-filter__icon" aria-hidden="true" />
+              <span>Ratings</span>
+            </button>
           </div>
-        ) : filteredCafeterias.length > 0 ? (
+        </div>
+
+        {favoriteErrorMessage && (
+          <p className="cafeteria-favorite-error" role="alert">
+            {favoriteErrorMessage}
+          </p>
+        )}
+
+        {!selectedUniversity ? (
+          <div className="cafeteria-empty-state">
+            <h2>Select a university to see available vendors.</h2>
+            <p>Use the location selector in the header to choose from supported universities.</p>
+          </div>
+        ) : isLoading ? (
+          <LoadingSkeleton
+            variant="vendor-grid"
+            label={`Loading ${vendorResultsLabel} at ${selectedUniversity.name}`}
+          />
+        ) : errorMessage ? (
+          <div className="cafeteria-empty-state" role="alert">
+            <h2>Unable to load vendors.</h2>
+            <p>{errorMessage}</p>
+          </div>
+        ) : filteredVendors.length > 0 ? (
           <ul className="cafeteria-grid">
-            {filteredCafeterias.map((cafeteria) => (
-              <li key={cafeteria.id} className="cafeteria-grid__item">
-                <Link to={`/cafeteria/${cafeteria.id}`} className="cafeteria-card">
-                  <div className="cafeteria-card__image-shell">
-                    {cafeteria.image ? (
-                      <img src={cafeteria.image} alt={cafeteria.name} className="cafeteria-card__image" />
-                    ) : (
-                      <div className="cafeteria-card__image-placeholder">
-                        <i className="bi bi-shop-window" aria-hidden="true"></i>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="cafeteria-card__body">
-                    <div className="cafeteria-card__heading">
-                      <h2>{cafeteria.name}</h2>
-
-                      <div className="cafeteria-card__rating">
-                        <span>4.3</span>
-                        <img src={starIcon} alt="" className="cafeteria-card__icon" aria-hidden="true" />
-                      </div>
-                    </div>
-
-                    <div className="cafeteria-card__meta">
-                      <img src={clockIcon} alt="" className="cafeteria-card__icon" aria-hidden="true" />
-                      <span>30-45 mins</span>
-                    </div>
-                  </div>
-                </Link>
+            {filteredVendors.map((vendor) => (
+              <li key={vendor.id} className="cafeteria-grid__item">
+                <CafeteriaCard
+                  vendor={vendor}
+                  isFavorite={favoriteVendorIds.has(vendor.id)}
+                  onFavoriteToggle={() => void handleFavoriteToggle(vendor)}
+                  favoriteIsPending={favoriteMutationVendorId === vendor.id}
+                  favoriteIsDisabled={favoriteStatusIsLoading}
+                />
               </li>
             ))}
           </ul>
         ) : (
           <div className="cafeteria-empty-state">
-            <h2>No cafeterias match your search.</h2>
-            <p>Try a different name or clear the search to browse all available spots.</p>
+            <h2>
+              {searchQuery.trim()
+                ? 'No vendors match your search.'
+                : openNowOnly
+                  ? 'No vendors are open right now.'
+                : `No ${vendorResultsLabel} are available.`}
+            </h2>
+            <p>
+              {searchQuery.trim()
+                ? 'Try a different name or clear the search.'
+                : openNowOnly
+                  ? 'Clear the Open now filter to see all available vendors.'
+                : `There are currently no matching vendors at ${selectedUniversity.name}.`}
+            </p>
           </div>
         )}
       </section>

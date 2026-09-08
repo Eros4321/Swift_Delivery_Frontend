@@ -1,0 +1,35 @@
+@use 'colors' as c;
+@use 'typography' as t;
+@use 'sass:map';
+
+@mixin type($style) {
+  font-family: map.get($style, font-family);
+  font-weight: map.get($style, font-weight);
+  font-size: map.get($style, font-size);
+  line-height: map.get($style, line-height);
+  letter-spacing: map.get($style, letter-spacing);
+}
+
+.checkout-section-heading {
+  display: flex;
+  width: 100%;
+  min-height: 3.2rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 1rem;
+  border-bottom: 3px solid c.$primary-container;
+  color: c.$key-primary;
+
+  h2 {
+    margin: 0 0 -3px;
+    padding-bottom: 0.65rem;
+    border-bottom: 3px solid c.$key-primary;
+    @include type(t.$title-small);
+  }
+}
+
+.checkout-section-heading__trailing {
+  padding-bottom: 0.65rem;
+  color: c.$key-primary;
+  @include type(t.$title-small);
+}

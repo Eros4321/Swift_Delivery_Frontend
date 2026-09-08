@@ -1,0 +1,607 @@
+@use 'colors' as c;
+@use 'typography' as t;
+@use 'elevation' as e;
+@use 'sass:map';
+
+@mixin type($style) {
+  font-family: map.get($style, font-family);
+  font-weight: map.get($style, font-weight);
+  font-size: map.get($style, font-size);
+  line-height: map.get($style, line-height);
+  letter-spacing: map.get($style, letter-spacing);
+}
+
+@mixin hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.checkout-address-modal__backdrop {
+  position: fixed;
+  z-index: 2100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2.5rem 1rem 1rem;
+  background: rgba(c.$black, 0.28);
+  animation: checkout-address-backdrop-in 160ms ease-out;
+}
+
+.checkout-address-modal {
+  position: relative;
+  display: flex;
+  width: min(32rem, 100%);
+  max-height: calc(100dvh - 3.5rem);
+  flex-direction: column;
+  overflow: visible;
+  border-radius: 1.5rem;
+  background: c.$white;
+  color: c.$on-surface;
+  box-shadow: e.$light-1;
+  animation: checkout-address-modal-in 200ms ease-out;
+}
+
+.checkout-address-modal--list {
+  height: min(34rem, calc(100dvh - 3.5rem));
+}
+
+.checkout-address-modal--map {
+  width: min(52rem, 100%);
+  height: min(38rem, calc(100dvh - 3.5rem));
+}
+
+.checkout-address-modal__header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 4.5rem;
+  padding: 1.25rem 2rem;
+
+  h2 {
+    flex: 1;
+    margin: 0;
+    color: c.$on-surface;
+    @include type(t.$headline-small-emphasized);
+  }
+}
+
+.checkout-address-modal__content {
+  @include hide-scrollbar;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 0 0 1.5rem 1.5rem;
+}
+
+.checkout-address-modal__content {
+  padding: 1.25rem 2rem 1.5rem;
+}
+
+.checkout-address-modal__search {
+  display: flex;
+  min-height: 3.75rem;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0 1rem;
+  border-radius: 0.65rem;
+  background: c.$surface-container;
+
+  > img {
+    display: block;
+    width: 1.125rem;
+    height: 1.125rem;
+    flex: 0 0 auto;
+  }
+
+  input {
+    width: 100%;
+    min-width: 0;
+    padding: 0.8rem 0;
+    border: 0;
+    outline: 0;
+    background: c.$transparent;
+    color: c.$on-surface;
+    appearance: none;
+    @include type(t.$body-medium);
+    @include t.mobile-input-size;
+
+    &::placeholder {
+      color: c.$grey;
+      @include type(t.$body-medium);
+    }
+
+    &::-webkit-search-cancel-button {
+      cursor: pointer;
+    }
+  }
+}
+
+.checkout-address-modal__status,
+.checkout-address-modal__error {
+  margin: 0.55rem 0 0;
+  @include type(t.$body-small);
+}
+
+.checkout-address-modal__status {
+  color: c.$on-surface-variant;
+}
+
+.checkout-address-modal__error {
+  color: c.$error;
+}
+
+.checkout-address-modal__place-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  button {
+    display: flex;
+    width: 100%;
+    min-height: 3.5rem;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.8rem 0.15rem;
+    border: 0;
+    background: c.$transparent;
+    color: c.$on-surface;
+    cursor: pointer;
+    text-align: left;
+
+    &:not(:disabled):hover {
+      background: c.$surface-container;
+    }
+
+    &:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+
+    > .checkout-address-modal__place-result-icon {
+      width: 1.25rem;
+      height: 1.25rem;
+      flex: 0 0 auto;
+    }
+
+    span {
+      flex: 1;
+      min-width: 0;
+
+      strong {
+        @include type(t.$body-medium-emphasized);
+      }
+    }
+  }
+}
+
+.checkout-address-modal__save-option {
+  margin-top: 0.75rem;
+}
+
+.checkout-address-modal__new-address-actions {
+  margin-top: 0.55rem;
+
+  > button {
+    display: flex;
+    width: 100%;
+    min-height: 3.6rem;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.15rem;
+    border: 0;
+    border-bottom: 1px solid c.$outline-variant;
+    background: c.$transparent;
+    color: c.$primary;
+    cursor: pointer;
+    text-align: left;
+
+    &:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+
+    > .checkout-address-modal__current-location-icon {
+      width: 1.25rem;
+      flex: 0 0 auto;
+      text-align: center;
+    }
+
+    > .checkout-address-modal__current-location-icon {
+      height: 1.25rem;
+      align-self: flex-start;
+      background: c.$primary;
+      -webkit-mask-position: center;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-size: contain;
+      mask-position: center;
+      mask-repeat: no-repeat;
+      mask-size: contain;
+    }
+
+    > .checkout-address-modal__action-copy {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+    }
+
+    strong {
+      @include type(t.$label-large);
+    }
+
+    small {
+      overflow: hidden;
+      color: c.$on-surface-variant;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      @include type(t.$body-small);
+    }
+  }
+}
+
+.checkout-address-modal__saved {
+  margin-top: 0;
+}
+
+.checkout-address-modal__saved-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    border-bottom: 1px solid c.$outline-variant;
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+}
+
+.checkout-address-modal__saved-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.checkout-address-modal__select-address {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.9rem 0.15rem;
+  border: 0;
+  background: c.$transparent;
+  color: c.$on-surface;
+  cursor: pointer;
+  text-align: left;
+
+  > .checkout-address-modal__saved-location-icon {
+    display: block;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  > span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    @include type(t.$body-medium-emphasized);
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+}
+
+.checkout-address-modal__saved-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+
+  button {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: c.$transparent;
+    color: c.$primary;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+  }
+
+  img {
+    display: block;
+    width: 1rem;
+    height: auto;
+  }
+}
+
+.checkout-address-modal__delete-confirmation {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0 0.15rem 0.75rem;
+  color: c.$on-error-container;
+  @include type(t.$body-small-emphasized);
+
+  span {
+    margin-right: auto;
+  }
+
+  button {
+    padding: 0.35rem 0.65rem;
+    border: 0;
+    border-radius: 999px;
+    background: c.$surface-container;
+    color: c.$on-surface;
+    cursor: pointer;
+    @include type(t.$label-medium-emphasized);
+
+    &:last-child {
+      background: c.$error-container;
+      color: c.$on-error-container;
+    }
+
+    &:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+  }
+}
+
+.checkout-address-modal__empty {
+  margin: 0;
+  padding: 1rem 0;
+  color: c.$on-surface-variant;
+  text-align: center;
+  @include type(t.$body-medium);
+}
+
+.checkout-address-modal__map-content {
+  display: grid;
+  min-height: 0;
+  flex: 1 1 auto;
+  grid-template-rows: minmax(18rem, 1fr) auto;
+  overflow: hidden;
+  border-radius: 0 0 1.5rem 1.5rem;
+}
+
+.checkout-address-modal__interactive-map {
+  min-height: 0;
+  padding: 0 2rem;
+}
+
+.google-address-picker {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 18rem;
+  overflow: hidden;
+  border: 1px solid c.$outline-variant;
+  border-radius: 0.85rem;
+  background: c.$surface-container;
+}
+
+.google-address-picker__canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.google-address-picker__hint {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 50%;
+  z-index: 1;
+  width: max-content;
+  max-width: calc(100% - 1.5rem);
+  margin: 0;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(c.$white, 0.94);
+  color: c.$on-surface;
+  box-shadow: e.$light-1;
+  text-align: center;
+  transform: translateX(-50%);
+  @include type(t.$label-medium-emphasized);
+}
+
+.google-address-picker__hint--error {
+  color: c.$error;
+}
+
+.google-address-picker__selected-marker {
+  position: absolute;
+  z-index: 2;
+  width: 2.5rem;
+  height: 2.5rem;
+  pointer-events: none;
+  background: c.$key-primary;
+  filter: drop-shadow(0 0.15rem 0.2rem rgba(c.$black, 0.25));
+  transform: translate(-50%, -100%);
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.google-address-picker--disabled {
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.google-address-picker__loading,
+.google-address-picker__error {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 18rem;
+  place-items: center;
+  margin: 0;
+  padding: 1.5rem;
+  border: 1px solid c.$outline-variant;
+  border-radius: 0.85rem;
+  background: c.$surface-container;
+  text-align: center;
+  @include type(t.$body-medium);
+}
+
+.google-address-picker__loading {
+  color: c.$on-surface-variant;
+}
+
+.google-address-picker__error {
+  color: c.$error;
+}
+
+.checkout-address-modal__map-actions {
+  padding: 1rem 2rem 1.5rem;
+
+  .primary-action-button {
+    width: 100%;
+    margin-top: 0.9rem;
+  }
+}
+
+.checkout-address-modal__map-selection {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0;
+  color: c.$on-surface;
+
+  > p {
+    margin: 0;
+    color: c.$on-surface-variant;
+    @include type(t.$body-medium);
+  }
+
+  > span:last-child {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+
+    strong {
+      @include type(t.$body-medium-emphasized);
+    }
+
+    small {
+      color: c.$on-surface-variant;
+      @include type(t.$body-small);
+    }
+  }
+}
+
+.checkout-address-modal__map-selection-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  background: c.$primary;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.checkout-address-modal__map-save-option {
+  margin-top: 0.25rem;
+}
+
+.checkout-address-modal button:focus-visible,
+.checkout-address-modal input:not([type='search']):focus-visible,
+.checkout-address-modal textarea:focus-visible {
+  outline: 2px solid c.$primary;
+  outline-offset: 2px;
+}
+
+@keyframes checkout-address-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes checkout-address-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.98);
+  }
+}
+
+@media (max-width: 760px) {
+  .checkout-address-modal--map {
+    width: min(42rem, 100%);
+  }
+}
+
+@media (max-width: 520px) {
+  .checkout-address-modal__backdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .checkout-address-modal {
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: 1.5rem 1.5rem 0 0;
+  }
+
+  .checkout-address-modal--list {
+    height: min(38rem, 92dvh);
+  }
+
+  .checkout-address-modal--map {
+    height: 92dvh;
+  }
+
+  .checkout-address-modal__header,
+  .checkout-address-modal__content {
+    padding-right: 1.25rem;
+    padding-left: 1.25rem;
+  }
+
+  .checkout-address-modal__interactive-map,
+  .checkout-address-modal__map-actions {
+    padding-right: 1.25rem;
+    padding-left: 1.25rem;
+  }
+
+  .checkout-address-modal__map-content {
+    grid-template-rows: minmax(17rem, 1fr) auto;
+  }
+
+  .google-address-picker__hint {
+    white-space: normal;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkout-address-modal__backdrop,
+  .checkout-address-modal {
+    animation: none;
+  }
+}

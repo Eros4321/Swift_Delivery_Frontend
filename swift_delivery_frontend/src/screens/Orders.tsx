@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
+import { MobileLoadingSpinner } from '../components/LoadingState';
+import VendorLogo from '../components/VendorLogo';
 import '../styles/orders.scss';
 import emptyCartIllustration from '../assets/Girl looking at empty plate.svg';
-import vendorLogo from '../assets/ChatGPT Image May 6, 2026, 01_23_24 PM.png';
 import closeIcon from '../assets/close.svg';
 import trashIcon from '../assets/TrashOutline.svg';
 import checkoutArrowIcon from '../assets/ArrowRight.svg';
@@ -23,46 +25,31 @@ interface OrdersProps {
 
 interface OrdersLocationState {
   vendorName?: string;
+  vendorLogo?: string | null;
   mobileCartSummary?: boolean;
 }
 
-interface StoredCartVendor {
-  name?: string;
-}
-
-const getStoredVendorName = () => {
-  const savedVendor = localStorage.getItem('cartVendor');
-  if (!savedVendor) return undefined;
-
-  try {
-    const parsedVendor = JSON.parse(savedVendor) as StoredCartVendor;
-    return typeof parsedVendor.name === 'string' && parsedVendor.name.trim()
-      ? parsedVendor.name
-      : undefined;
-  } catch {
-    return undefined;
-  }
-};
-
 const Orders: React.FC<OrdersProps> = ({ isModal = false }) => {
-  const [cart, setCart] = useState<CartItem[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
+  const {
+    cartVendor,
+    cartItems,
+    isLoading,
+    error: cartError,
+    clearCart: clearServerCart,
+  } = useCart();
   const routeState = location.state as OrdersLocationState | null;
-  const vendorName = routeState?.vendorName ?? getStoredVendorName() ?? 'Vendor';
+  const vendorName = cartVendor?.name ?? routeState?.vendorName ?? 'Vendor';
+  const vendorLogo = cartVendor?.logo ?? routeState?.vendorLogo;
   const isMobileCartSummary = routeState?.mobileCartSummary === true;
-
-  useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (!savedCart) return;
-
-    try {
-      const parsedCart = JSON.parse(savedCart) as unknown;
-      setCart(Array.isArray(parsedCart) ? parsedCart as CartItem[] : []);
-    } catch {
-      setCart([]);
-    }
-  }, []);
+  const cart: CartItem[] = cartItems.map(({ menu_item_detail: item, quantity }) => ({
+    id: item.id,
+    name: item.name,
+    price: item.price,
+    quantity,
+    image: item.image ?? undefined,
+  }));
 
   const totalAmount = cart.reduce((total, item) => total + Number(item.price) * item.quantity, 0);
   const itemCount = cart.reduce((total, item) => total + item.quantity, 0);
@@ -75,16 +62,19 @@ const Orders: React.FC<OrdersProps> = ({ isModal = false }) => {
     navigate('/');
   };
 
-  const clearCart = () => {
-    localStorage.removeItem('cart');
-    localStorage.removeItem('cartVendor');
-    setCart([]);
-    window.dispatchEvent(new Event('cart-updated'));
+  const clearCart = async () => {
+    try {
+      await clearServerCart();
+      localStorage.removeItem('cartVendor');
+    } catch (error) {
+      console.error('Unable to clear cart:', error);
+    }
   };
 
   if (cart.length === 0) {
     const emptyCartDialog = (
       <div className="cart-modal-scrim" onClick={closeCart}>
+        {isLoading && <MobileLoadingSpinner label="Loading your cart" />}
         <section
           className="cart-dialog cart-dialog--empty"
           role="dialog"
@@ -98,8 +88,14 @@ const Orders: React.FC<OrdersProps> = ({ isModal = false }) => {
 
             <div className="cart-dialog__empty-body">
               <img src={emptyCartIllustration} alt="" aria-hidden="true" />
-              <h2>Your cart is empty</h2>
-              <p>Select an item to get started</p>
+              <h2>
+                {isLoading
+                  ? 'Loading your cart...'
+                  : cartError
+                    ? 'Unable to load your cart'
+                    : 'Your cart is empty'}
+              </h2>
+              <p>{cartError ?? 'Select an item to get started'}</p>
             </div>
           </section>
       </div>
@@ -149,9 +145,7 @@ const Orders: React.FC<OrdersProps> = ({ isModal = false }) => {
           className="cart-vendor-summary"
           onClick={isMobileCartSummary ? closeCart : () => navigate('/checkout')}
         >
-          <span className="cart-vendor-summary__logo" aria-hidden="true">
-            <img src={vendorLogo} alt="" />
-          </span>
+          <VendorLogo name={vendorName} source={vendorLogo} variant="cart" />
           <span className="cart-vendor-summary__copy">
             <strong>{vendorName}</strong>
             <span>

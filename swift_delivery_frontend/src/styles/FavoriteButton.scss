@@ -1,0 +1,65 @@
+@use 'colors' as c;
+
+.favorite-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 1000px;
+  background: c.$surface;
+  color: c.$secondary-container;
+  cursor: pointer;
+  transition: color 160ms ease, opacity 160ms ease, transform 160ms ease;
+
+  &:hover:not(:disabled):not(.favorite-button--active) {
+    color: c.$key-secondary;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.94);
+  }
+
+  &:focus-visible {
+    outline: 2px solid c.$key-secondary;
+    outline-offset: 0.15rem;
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+}
+
+.favorite-button--active {
+  color: c.$favorite;
+}
+
+.favorite-button__icon {
+  display: block;
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.75rem;
+
+  path {
+    fill: transparent;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: fill 160ms ease;
+  }
+}
+
+.favorite-button--active .favorite-button__icon path {
+  fill: currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .favorite-button,
+  .favorite-button__icon path {
+    transition: none;
+  }
+}

@@ -1,10 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import 'bootstrap-icons/font/bootstrap-icons.css';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import '../styles/Header.scss';
 import logo from '../assets/logo2.svg';
-import locationMarker from '../assets/LocationMarker.svg';
-import arrowDown from '../assets/keyboard_arrow_down.svg';
 import heartIcon from '../assets/heart.svg';
 import cartIcon from '../assets/cart.svg';
 import menuIcon from '../assets/MenuAlt4.svg';
@@ -16,48 +13,58 @@ import logoutIcon from '../assets/Logout.svg';
 import appleIcon from '../assets/apple.svg';
 import playstoreIcon from '../assets/playstore.svg';
 import accountCopyIcon from '../assets/account-copy-outline.svg';
+import {
+  clearCustomerSession,
+  customerSessionUpdatedEvent,
+  getApiErrorMessage,
+  getStoredCustomer,
+  logoutCustomer,
+} from '../services/api';
+import { useCart } from '../context/CartContext';
+import { formatNigerianPhoneNumber } from '../utils/phoneNumber';
 import SearchField from './SearchField';
+import UniversitySelector from './UniversitySelector';
+import HeaderCornerAccent from './HeaderCornerAccent';
+import { MobileLoadingSpinner } from './LoadingState';
+import AppIcon from './AppIcon';
+
+export type HeaderAccentTheme = 'browse-all' | 'cafeterias' | 'grillz' | 'pastries' | 'drinks';
 
 interface HeaderProps {
   searchQuery?: string;
   onSearch?: (query: string) => void;
+  accentTheme?: HeaderAccentTheme;
 }
 
-const Header: React.FC<HeaderProps> = ({ searchQuery = '', onSearch }) => {
+const Header: React.FC<HeaderProps> = ({
+  searchQuery = '',
+  onSearch,
+  accentTheme = 'browse-all',
+}) => {
   const [internalQuery, setInternalQuery] = useState(searchQuery);
-  const [cartItemCount, setCartItemCount] = useState(0);
+  const [customer, setCustomer] = useState(getStoredCustomer);
   const [profileIsOpen, setProfileIsOpen] = useState(false);
+  const [locationSelectorIsOpen, setLocationSelectorIsOpen] = useState(false);
   const [mobileHeaderProgress, setMobileHeaderProgress] = useState(0);
+  const [logoutIsPending, setLogoutIsPending] = useState(false);
+  const [logoutError, setLogoutError] = useState('');
   const profileRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { itemCount: cartItemCount } = useCart();
 
   useEffect(() => {
     setInternalQuery(searchQuery);
   }, [searchQuery]);
 
   useEffect(() => {
-    const syncCartCount = () => {
-      const savedCart = localStorage.getItem('cart');
-      if (!savedCart) { setCartItemCount(0); return; }
-      try {
-        const cartItems = JSON.parse(savedCart) as Array<{ quantity?: number }>;
-        const total = Array.isArray(cartItems)
-          ? cartItems.reduce((sum, item) => sum + (item.quantity ?? 0), 0)
-          : 0;
-        setCartItemCount(total);
-      } catch {
-        setCartItemCount(0);
-      }
-    };
+    const syncCustomer = () => setCustomer(getStoredCustomer());
 
-    syncCartCount();
-    window.addEventListener('focus', syncCartCount);
-    window.addEventListener('storage', syncCartCount);
-    window.addEventListener('cart-updated', syncCartCount as EventListener);
+    window.addEventListener('storage', syncCustomer);
+    window.addEventListener(customerSessionUpdatedEvent, syncCustomer);
     return () => {
-      window.removeEventListener('focus', syncCartCount);
-      window.removeEventListener('storage', syncCartCount);
-      window.removeEventListener('cart-updated', syncCartCount as EventListener);
+      window.removeEventListener('storage', syncCustomer);
+      window.removeEventListener(customerSessionUpdatedEvent, syncCustomer);
     };
   }, []);
 
@@ -148,6 +155,54 @@ const Header: React.FC<HeaderProps> = ({ searchQuery = '', onSearch }) => {
     onSearch?.(query);
   };
 
+  const handleLocationOpenChange = useCallback((isOpen: boolean) => {
+    setLocationSelectorIsOpen(isOpen);
+    if (isOpen) setProfileIsOpen(false);
+  }, []);
+
+  const handleProfileToggle = () => {
+    setLocationSelectorIsOpen(false);
+    setLogoutError('');
+
+    if (!customer) {
+      setProfileIsOpen(false);
+      navigate('/login');
+      return;
+    }
+
+    setProfileIsOpen((isOpen) => !isOpen);
+  };
+
+  const handleFavoritesOpen = () => {
+    setLocationSelectorIsOpen(false);
+    setProfileIsOpen(false);
+    navigate('/favorites');
+  };
+
+  const handleOrderHistoryOpen = () => {
+    setLocationSelectorIsOpen(false);
+    setProfileIsOpen(false);
+    navigate('/order-history');
+  };
+
+  const handleLogout = async () => {
+    if (logoutIsPending) return;
+
+    setLogoutError('');
+    setLogoutIsPending(true);
+
+    try {
+      await logoutCustomer();
+      clearCustomerSession();
+      setProfileIsOpen(false);
+      navigate('/login', { replace: true });
+    } catch (error: unknown) {
+      setLogoutError(getApiErrorMessage(error, 'Unable to log out right now. Please try again.'));
+    } finally {
+      setLogoutIsPending(false);
+    }
+  };
+
   const mobileHeaderStyle = {
     '--mobile-header-collapse-progress': mobileHeaderProgress,
     '--mobile-header-top-row-height': `${40 * (1 - mobileHeaderProgress)}px`,
@@ -159,24 +214,55 @@ const Header: React.FC<HeaderProps> = ({ searchQuery = '', onSearch }) => {
 
   const headerClassName = [
     'cafeteria-topbar',
+    `cafeteria-topbar--accent-${accentTheme}`,
     mobileHeaderProgress > 0.95 ? 'cafeteria-topbar--search-only' : '',
     profileIsOpen ? 'cafeteria-topbar--profile-open' : '',
+    locationSelectorIsOpen ? 'cafeteria-topbar--location-open' : '',
   ].filter(Boolean).join(' ');
+
+  const customerName = customer
+    ? [customer.first_name.trim(), customer.last_name.trim()].filter(Boolean).join(' ')
+    : '';
+  const profileName = customerName || 'Name unavailable';
+  const profilePhoneNumber = customer
+    ? formatNigerianPhoneNumber(customer.phone_number)
+    : 'Phone unavailable';
 
   return (
     <header
       className={headerClassName}
       style={mobileHeaderStyle}
     >
+      {logoutIsPending && <MobileLoadingSpinner label="Logging out" />}
+
+      <span className="cafeteria-topbar__visuals" aria-hidden="true">
+        <HeaderCornerAccent
+          className="cafeteria-topbar__visual cafeteria-topbar__visual--left"
+        />
+        <HeaderCornerAccent
+          className="cafeteria-topbar__visual cafeteria-topbar__visual--right"
+        />
+      </span>
+
       <Link to="/" className="cafeteria-topbar__brand" aria-label="Swift Delivery home">
         <img src={logo} alt="Swift Delivery" className="cafeteria-topbar__logo" />
       </Link>
 
-      <button type="button" className="cafeteria-topbar__location">
-        <img src={locationMarker} alt="" className="cafeteria-topbar__icon" aria-hidden="true" />
-        <span>Redeemer&apos;s University</span>
-        <img src={arrowDown} alt="" className="cafeteria-topbar__icon" aria-hidden="true" />
-      </button>
+      {locationSelectorIsOpen && (
+        <button
+          type="button"
+          className="university-selector__scrim"
+          aria-label="Close university selector"
+          tabIndex={-1}
+          onClick={() => handleLocationOpenChange(false)}
+        />
+      )}
+
+      <UniversitySelector
+        customer={customer}
+        isOpen={locationSelectorIsOpen}
+        onOpenChange={handleLocationOpenChange}
+      />
 
       <SearchField
         className="cafeteria-topbar__search"
@@ -186,7 +272,12 @@ const Header: React.FC<HeaderProps> = ({ searchQuery = '', onSearch }) => {
         ariaLabel="Search Swift Delivery"
       />
 
-      <button type="button" className="cafeteria-topbar__icon-btn" aria-label="Favorites">
+      <button
+        type="button"
+        className="cafeteria-topbar__icon-btn"
+        aria-label="View favourites"
+        onClick={handleFavoritesOpen}
+      >
         <img src={heartIcon} alt="" className="cafeteria-topbar__icon" aria-hidden="true" />
       </button>
 
@@ -204,10 +295,10 @@ const Header: React.FC<HeaderProps> = ({ searchQuery = '', onSearch }) => {
         <button
           type="button"
           className="cafeteria-topbar__profile-btn"
-          aria-label="Profile menu"
-          aria-expanded={profileIsOpen}
-          aria-controls="profile-panel"
-          onClick={() => setProfileIsOpen((isOpen) => !isOpen)}
+          aria-label={customer ? 'Profile menu' : 'Login'}
+          aria-expanded={customer ? profileIsOpen : undefined}
+          aria-controls={customer ? 'profile-panel' : undefined}
+          onClick={handleProfileToggle}
         >
           <svg
             className="cafeteria-topbar__profile-icon"
@@ -230,8 +321,10 @@ const Header: React.FC<HeaderProps> = ({ searchQuery = '', onSearch }) => {
               strokeLinejoin="round"
             />
           </svg>
-          <span>Profile</span>
-          <img src={menuIcon} alt="" className="cafeteria-topbar__icon" aria-hidden="true" />
+          <span>{customer ? 'Profile' : 'Login'}</span>
+          {customer && (
+            <img src={menuIcon} alt="" className="cafeteria-topbar__icon" aria-hidden="true" />
+          )}
         </button>
 
         {profileIsOpen && (
@@ -249,10 +342,10 @@ const Header: React.FC<HeaderProps> = ({ searchQuery = '', onSearch }) => {
               <span className="profile-panel__avatar" aria-hidden="true">
                 <img src={profileAvatar} alt="" />
               </span>
-              <h2>Benjamin Odion-Owase</h2>
+              <h2>{profileName}</h2>
               <p>
                 <span className="profile-panel__country-code">NG</span>
-                {' +234 09030346457'}
+                {` ${profilePhoneNumber}`}
               </p>
             </div>
 
@@ -275,25 +368,46 @@ const Header: React.FC<HeaderProps> = ({ searchQuery = '', onSearch }) => {
 
             <section className="profile-panel__section profile-panel__section--more" aria-labelledby="profile-more">
               <h3 id="profile-more"><span>More</span></h3>
-              <button type="button" className="profile-panel__menu-item">
+              <button
+                type="button"
+                className="profile-panel__menu-item"
+                onClick={handleFavoritesOpen}
+              >
                 <img src={viewFavoritesIcon} alt="" className="profile-panel__menu-icon" aria-hidden="true" />
                 <span>View Favorites</span>
-                <i className="bi bi-arrow-right" aria-hidden="true"></i>
+                <AppIcon name="arrow-right" />
               </button>
-              <button type="button" className="profile-panel__menu-item">
+              <button
+                type="button"
+                className="profile-panel__menu-item"
+                onClick={handleOrderHistoryOpen}
+              >
                 <img src={orderHistoryIcon} alt="" className="profile-panel__menu-icon" aria-hidden="true" />
                 <span>Order History</span>
-                <i className="bi bi-arrow-right" aria-hidden="true"></i>
+                <AppIcon name="arrow-right" />
               </button>
-              <button type="button" className="profile-panel__menu-item">
+              <button
+                type="button"
+                className="profile-panel__menu-item"
+                aria-disabled="true"
+              >
                 <img src={reachSupportIcon} alt="" className="profile-panel__menu-icon" aria-hidden="true" />
                 <span>Reach Support</span>
-                <i className="bi bi-arrow-up-right" aria-hidden="true"></i>
+                <AppIcon name="arrow-right" />
               </button>
-              <button type="button" className="profile-panel__menu-item">
+              <button
+                type="button"
+                className="profile-panel__menu-item"
+                onClick={handleLogout}
+                disabled={logoutIsPending}
+                aria-busy={logoutIsPending}
+              >
                 <img src={logoutIcon} alt="" className="profile-panel__menu-icon" aria-hidden="true" />
-                <span>Logout</span>
+                <span>{logoutIsPending ? 'Logging out...' : 'Logout'}</span>
               </button>
+              {logoutError && (
+                <p className="profile-panel__logout-error" role="alert">{logoutError}</p>
+              )}
             </section>
 
             <footer className="profile-panel__footer">

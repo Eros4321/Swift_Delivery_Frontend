@@ -1,0 +1,71 @@
+@use 'colors' as c;
+
+.modal-header-button {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: background-color 160ms ease, color 160ms ease;
+
+  .modal-header-button__icon {
+    display: block;
+    width: 0.5rem;
+    flex: 0 0 auto;
+    background: currentColor;
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: contain;
+  }
+
+  &:focus-visible {
+    outline: 2px solid c.$primary;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+}
+
+.modal-header-button--back {
+  left: 1rem;
+  background: c.$primary;
+  color: c.$white;
+
+  .modal-header-button__icon {
+    height: 0.4375rem;
+  }
+
+  &:not(:disabled):hover {
+    background: c.$surface-container;
+    color: c.$primary;
+  }
+}
+
+.modal-header-button--close {
+  right: 1rem;
+  background: c.$surface-container;
+  color: c.$primary;
+
+  .modal-header-button__icon {
+    height: 0.5rem;
+  }
+
+  &:not(:disabled):hover {
+    background: c.$primary;
+    color: c.$white;
+  }
+}
